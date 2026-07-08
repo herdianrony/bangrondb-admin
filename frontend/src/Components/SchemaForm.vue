@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-3">
     <div v-if="!schema || Object.keys(visibleFields).length===0" class="text-slate-400 text-sm">
-      Tidak ada schema aktif – fallback ke JSON editor.
+      Tidak ada schema — menggunakan editor JSON
       <textarea v-model="jsonFallback" rows="10" class="input font-mono text-sm mt-2 w-full"></textarea>
     </div>
     <div v-else class="grid gap-4">
@@ -33,7 +33,7 @@
         <!-- ENUM with badge colors -->
         <div v-else-if="isEnum(rules)">
           <select v-model="model[field]" class="input" :disabled="rules.readonly">
-            <option value="">-- pilih --</option>
+            <option value="">Select...</option>
             <option v-for="opt in enumOptions(rules)" :key="opt" :value="opt">{{ opt }}</option>
           </select>
           <div v-if="rules.ui?.badge && model[field]" class="mt-1">
@@ -118,7 +118,7 @@
 
     <div class="flex gap-2 pt-2 items-center text-xs">
       <button type="button" class="btn-ghost-sm" @click="$emit('validate', getPayload())"><Check :size="14"/> Validate via API</button>
-      <span class="text-slate-500">SSOT types: string • text • int • float • bool • array • object • enum • date • datetime • relation • tags</span>
+      <span class="text-slate-500">Supported: string, text, email, password, url, int, float, bool, array, object, enum, date, datetime, relation, tags</span>
     </div>
     <div v-if="apiError" class="text-red-400 text-sm bg-red-950/30 p-2 rounded-xl border border-red-900">{{ apiError }}</div>
   </div>

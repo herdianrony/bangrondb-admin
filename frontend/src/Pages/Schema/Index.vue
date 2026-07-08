@@ -34,10 +34,9 @@
           </button>
         </div>
       </div>
-      <div class="text-[11px] text-slate-400 mt-2">
-        <b>Schema Builder – dynamic</b> • types: string, text, email, password, url, int, float, bool, array, object, enum, date, datetime, relation, tags
-        • label, required, unique, min/max, regex, default, readonly, hidden, filterable, sortable, index, searchable, ui{placeholder,icon,badge,color}, relation{db,collection,field,display}
-        <br><span class="text-emerald-300">Schema is stored directly in BangronDB collection config — including UI metadata.</span>
+      <div class="text-xs text-slate-500 mt-2">
+        Design your collection schema. Changes are saved directly to BangronDB.
+        <span class="text-emerald-300">Schema includes UI metadata for automatic form generation.</span>
       </div>
     </div>
 
@@ -100,13 +99,12 @@
     </div>
 
     <!-- summary footer -->
-    <div class="card text-xs text-slate-300">
-      <b>Fields:</b> {{ Object.keys(schema).length }}
-      • required: {{ requiredCount }}
-      • unique: {{ uniqueCount }}
-      • relations: {{ relationCount }}
-      • indexed: {{ indexedCount }}
-      • <span class="text-emerald-300">Enhanced schema is stored directly in BangronDB → .bangron file (includes UI metadata)</span>
+    <div class="card text-xs text-slate-400 flex items-center gap-4">
+      <span><b class="text-slate-200">{{ Object.keys(schema).length }}</b> fields</span>
+      <span class="text-emerald-300">{{ requiredCount }} required</span>
+      <span class="text-amber-300">{{ uniqueCount }} unique</span>
+      <span class="text-cyan-300">{{ relationCount }} relations</span>
+      <span class="text-indigo-300">{{ indexedCount }} indexed</span>
     </div>
   </div>
 </template>
@@ -137,7 +135,7 @@ watch(schema, v => { schemaText.value = JSON.stringify(v, null, 2) }, {deep:true
 function syncFromBuilder(){ schemaText.value = JSON.stringify(schema.value, null, 2) }
 function syncToBuilder(){
   try{ schema.value = JSON.parse(schemaText.value); tab.value='builder' }
-  catch(e){ alert('JSON invalid: '+e.message) }
+  catch(e){ alert('JSON tidak valid: '+e.message) }
 }
 
 const requiredCount = computed(()=> Object.values(schema.value).filter(f=>f?.required).length)
