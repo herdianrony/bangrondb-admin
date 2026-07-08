@@ -32,7 +32,7 @@ class LoggerFactory
         $rotating = new RotatingFileHandler(
             $logDir . '/' . $channel . '.log',
             30,               // max files
-            (int)($_ENV['LOG_LEVEL'] ?? Logger::DEBUG),
+            Logger::toMonologLevel($_ENV['LOG_LEVEL'] ?? 'DEBUG'),
             true,             // bubble
             0644
         );
