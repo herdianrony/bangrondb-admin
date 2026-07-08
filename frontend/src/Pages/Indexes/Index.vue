@@ -29,6 +29,6 @@ import axios from 'axios'
 import { Zap, Plus, RefreshCw } from 'lucide-vue-next'
 const db=ref('app'); const col=ref('users'); const field=ref('email'); const idxName=ref('')
 const metrics=ref({})
-async function load(){ const r=await axios.get(`/api/${db.value}/indexes`); metrics.value=r.data }
-async function create(){ await axios.post(`/api/${db.value}/${col.value}/indexes`, {field: field.value, name: idxName.value||null}); load() }
+async function load(){ const r=await axios.get(`/databases/${db.value}/indexes`); metrics.value=r.data }
+async function create(){ await axios.post(`/databases/${db.value}/collections/${col.value}/indexes`, {field: field.value, name: idxName.value||null}); load() }
 </script>

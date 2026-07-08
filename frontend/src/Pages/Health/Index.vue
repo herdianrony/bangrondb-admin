@@ -42,11 +42,11 @@ const health = ref({})
 const metrics = ref({})
 const last = ref('')
 async function load(){
-  const h = await axios.get(`/api/${db.value}/health`)
+  const h = await axios.get(`/databases/${db.value}/health`)
   health.value = h.data
-  const m = await axios.get(`/api/${db.value}/metrics`)
+  const m = await axios.get(`/databases/${db.value}/metrics`)
   metrics.value = m.data
   last.value = new Date().toLocaleTimeString()
 }
-async function vacuum(){ await axios.post(`/api/${db.value}/vacuum`); load() }
+async function vacuum(){ await axios.post(`/databases/${db.value}/vacuum`); load() }
 </script>

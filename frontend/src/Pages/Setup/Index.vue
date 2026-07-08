@@ -245,7 +245,7 @@ const envPass = computed(() => !envChecks.value.some(c => c.status === 'err'))
 
 onMounted(async () => {
   try {
-    const r = await axios.get('/api/setup/status')
+    const r = await axios.get('/setup/status')
     // If already set up, skip to done
     if (r.data.admin_exists) {
       step.value = 3
@@ -282,7 +282,7 @@ async function launch() {
 
   launching.value = true
   try {
-    const r = await axios.post('/api/setup/initialize', {
+    const r = await axios.post('/setup/initialize', {
       username: form.username.trim(),
       email: form.email.trim() || 'admin@bangron.studio',
       password: form.password,

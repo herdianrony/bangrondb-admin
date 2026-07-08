@@ -228,7 +228,7 @@ async function loadRelation(field, rules){
   const rel = rules.relation
   if(!rel) return
   try{
-    const res = await axios.get(`/api/${rel.db}/${rel.collection}/documents`, { params:{ limit: 100 }})
+    const res = await axios.get(`/databases/${rel.db}/collections/${rel.collection}/documents`, { params:{ limit: 100 }})
     relationOptions[field] = (res.data.data||[]).map(d=>({
       value: d[rel.field || '_id'],
       label: d[rel.display] || d.name || d.title || d[rel.field || '_id']

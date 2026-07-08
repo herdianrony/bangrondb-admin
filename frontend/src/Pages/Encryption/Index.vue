@@ -66,7 +66,7 @@ const db = ref('app'); const col = ref('users')
 const key = ref(''); const fields = ref('email, phone'); const hash = ref(true)
 const msg = ref('')
 async function save(){
-  await axios.post(`/api/${db.value}/${col.value}/encryption`, {
+  await axios.post(`/databases/${db.value}/collections/${col.value}/encryption`, {
     key: key.value || null,
     searchable: fields.value.split(',').map(s=>s.trim()).filter(Boolean),
     hash: hash.value

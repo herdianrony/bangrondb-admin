@@ -176,7 +176,7 @@ const nativePreview = computed(()=>{
 
 async function loadSchema(){
   try{
-    const r = await axios.get(`/api/${db.value}/${col.value}/schema`)
+    const r = await axios.get(`/databases/${db.value}/collections/${col.value}/schema`)
     const s = r.data.schema || {}
     if(Object.keys(s).length){
       schema.value = s
@@ -193,7 +193,7 @@ async function loadSchema(){
 async function saveSchema(){
   try{
     const payload = typeof schema.value === 'object' ? schema.value : JSON.parse(schemaText.value)
-    const r = await axios.post(`/api/${db.value}/${col.value}/schema`, { schema: payload })
+    const r = await axios.post(`/databases/${db.value}/collections/${col.value}/schema`, { schema: payload })
     result.value = JSON.stringify({saved:true, ...r.data}, null, 2)
     tab.value='validate'
     alert('Schema berhasil disimpan ke BangronDB!')
@@ -206,7 +206,7 @@ async function saveSchema(){
 async function validate(){
   try{
     const doc = JSON.parse(docText.value)
-    const r = await axios.post(`/api/${db.value}/${col.value}/validate`, doc)
+    const r = await axios.post(`/databases/${db.value}/collections/${col.value}/schema/validate`, doc)
     result.value = JSON.stringify(r.data, null, 2)
   }catch(e){
     result.value = JSON.stringify({error:e.response?.data?.message || e.message}, null, 2)

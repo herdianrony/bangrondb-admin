@@ -2,9 +2,51 @@
 declare(strict_types=1);
 
 /**
- * Main data API routes: databases, collections, documents, query,
- * encryption, schema, ACL, audit, soft-deletes, hooks, relations,
- * indexes, health, config, transaction, setup, status, SSOT BC shim.
+ * Simplified REST-like API routes.
+ *
+ * Structure:
+ *   /databases                              GET (list), POST (create)
+ *   /databases/@db                          DELETE (drop), POST rename
+ *   /databases/@db/health                   GET
+ *   /databases/@db/metrics                  GET
+ *   /databases/@db/vacuum                   POST
+ *   /databases/@db/transaction              POST
+ *   /databases/@db/indexes                  GET, DELETE /@name
+ *
+ *   /databases/@db/collections              GET (list), POST (create)
+ *   /databases/@db/collections/@col         DELETE (drop), POST rename
+ *
+ *   /databases/@db/collections/@col/documents       GET, POST
+ *   /databases/@db/collections/@col/documents/@id   GET, PUT, DELETE
+ *   /databases/@db/collections/@col/query           POST
+ *   /databases/@db/collections/@col/count           POST
+ *   /databases/@db/collections/@col/save            POST (upsert)
+ *
+ *   /databases/@db/collections/@col/schema          GET, POST
+ *   /databases/@db/collections/@col/schema/validate POST
+ *
+ *   /databases/@db/collections/@col/acl             GET, PUT
+ *   /databases/@db/collections/@col/acl/test        POST
+ *
+ *   /databases/@db/collections/@col/config          GET
+ *   /databases/@db/collections/@col/config/save     POST
+ *   /databases/@db/collections/@col/id-mode         POST
+ *
+ *   /databases/@db/collections/@col/encryption      POST
+ *   /databases/@db/collections/@col/soft-deletes    POST (toggle)
+ *   /databases/@db/collections/@col/restore         POST
+ *   /databases/@db/collections/@col/force-delete     POST
+ *   /databases/@db/collections/@col/hooks           GET
+ *   /databases/@db/collections/@col/populate        POST
+ *   /databases/@db/collections/@col/indexes         POST (create)
+ *
+ *   /setup/status                                    GET
+ *   /setup/initialize                                POST
+ *
+ *   /audit/logs                                      GET
+ *   /audit/stats                                     GET
+ *
+ *   /status                                          GET
  */
 
 use App\Controllers\DatabaseController;
@@ -23,85 +65,99 @@ use App\Controllers\ConfigController;
 use App\Controllers\SetupController;
 use App\Controllers\StatusController;
 
-// ---------- Databases ----------
-Flight::route('GET   /api/databases',               [DatabaseController::class, 'index']);
-Flight::route('POST  /api/databases',               [DatabaseController::class, 'store']);
-Flight::route('DELETE /api/databases/@name',        [DatabaseController::class, 'destroy']);
-Flight::route('POST  /api/databases/@old/rename',   [DatabaseController::class, 'rename']);
+// ═══════════════════════════════════════════════════════════════
+// Databases
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /databases',                        [DatabaseController::class, 'index']);
+Flight::route('POST   /databases',                        [DatabaseController::class, 'store']);
+Flight::route('DELETE /databases/@name',                  [DatabaseController::class, 'destroy']);
+Flight::route('POST   /databases/@name/rename',           [DatabaseController::class, 'rename']);
 
-// ---------- Collections ----------
-Flight::route('GET    /api/@db/collections',                        [CollectionController::class, 'index']);
-Flight::route('POST   /api/@db/collections',                        [CollectionController::class, 'store']);
-Flight::route('DELETE /api/@db/collections/@collection',            [CollectionController::class, 'destroy']);
-Flight::route('POST   /api/@db/collections/@collection/rename',     [CollectionController::class, 'rename']);
+// DB-level: health, metrics, vacuum, transaction, indexes
+Flight::route('GET    /databases/@db/health',             [HealthController::class, 'show']);
+Flight::route('GET    /databases/@db/metrics',            [HealthController::class, 'metrics']);
+Flight::route('POST   /databases/@db/vacuum',             [HealthController::class, 'vacuum']);
+Flight::route('POST   /databases/@db/transaction',        [ConfigController::class, 'transaction']);
+Flight::route('GET    /databases/@db/indexes',            [IndexController::class, 'index']);
+Flight::route('DELETE /databases/@db/indexes/@name',      [IndexController::class, 'destroy']);
 
-// ---------- Documents (CRUD) ----------
-Flight::route('GET    /api/@db/@collection/documents',             [DocumentController::class, 'index']);
-Flight::route('POST   /api/@db/@collection/documents',             [DocumentController::class, 'store']);
-Flight::route('GET    /api/@db/@collection/documents/@id',         [DocumentController::class, 'show']);
-Flight::route('PUT    /api/@db/@collection/documents/@id',         [DocumentController::class, 'update']);
-Flight::route('DELETE /api/@db/@collection/documents',             [DocumentController::class, 'destroy']);
-Flight::route('POST   /api/@db/@collection/save',                   [DocumentController::class, 'save']);
-Flight::route('POST   /api/@db/@collection/count',                 [DocumentController::class, 'count']);
+// ═══════════════════════════════════════════════════════════════
+// Collections (under a database)
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /databases/@db/collections',                    [CollectionController::class, 'index']);
+Flight::route('POST   /databases/@db/collections',                    [CollectionController::class, 'store']);
+Flight::route('DELETE /databases/@db/collections/@col',               [CollectionController::class, 'destroy']);
+Flight::route('POST   /databases/@db/collections/@col/rename',        [CollectionController::class, 'rename']);
 
-// ---------- Query Operators ----------
-Flight::route('POST /api/@db/@collection/query',                    [DocumentController::class, 'query']);
+// ═══════════════════════════════════════════════════════════════
+// Documents (under a collection)
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /databases/@db/collections/@col/documents',            [DocumentController::class, 'index']);
+Flight::route('POST   /databases/@db/collections/@col/documents',            [DocumentController::class, 'store']);
+Flight::route('GET    /databases/@db/collections/@col/documents/@id',        [DocumentController::class, 'show']);
+Flight::route('PUT    /databases/@db/collections/@col/documents/@id',        [DocumentController::class, 'update']);
+Flight::route('DELETE /databases/@db/collections/@col/documents',            [DocumentController::class, 'destroy']);
+Flight::route('POST   /databases/@db/collections/@col/save',                  [DocumentController::class, 'save']);
+Flight::route('POST   /databases/@db/collections/@col/count',                 [DocumentController::class, 'count']);
+Flight::route('POST   /databases/@db/collections/@col/query',                 [DocumentController::class, 'query']);
 
-// ---------- Encryption ----------
-Flight::route('POST /api/@db/@collection/encryption',               [EncryptionController::class, 'store']);
+// ═══════════════════════════════════════════════════════════════
+// Collection sub-resources (schema, acl, config, encryption, etc)
+// ═══════════════════════════════════════════════════════════════
 
-// ---------- Schema ----------
-Flight::route('GET  /api/@db/@collection/schema',                   [SchemaController::class, 'show']);
-Flight::route('POST /api/@db/@collection/schema',                   [SchemaController::class, 'store']);
-Flight::route('POST /api/@db/@collection/validate',                 [SchemaController::class, 'validate']);
+// Schema
+Flight::route('GET    /databases/@db/collections/@col/schema',                [SchemaController::class, 'show']);
+Flight::route('POST   /databases/@db/collections/@col/schema',                [SchemaController::class, 'store']);
+Flight::route('POST   /databases/@db/collections/@col/schema/validate',       [SchemaController::class, 'validate']);
 
-// ---------- ACL ----------
-Flight::route('GET  /api/@db/@collection/acl',                      [AclController::class, 'show']);
-Flight::route('PUT  /api/@db/@collection/acl',                      [AclController::class, 'store']);
-Flight::route('POST /api/@db/@collection/acl/test',                 [AclController::class, 'test']);
+// ACL
+Flight::route('GET    /databases/@db/collections/@col/acl',                   [AclController::class, 'show']);
+Flight::route('PUT    /databases/@db/collections/@col/acl',                   [AclController::class, 'store']);
+Flight::route('POST   /databases/@db/collections/@col/acl/test',              [AclController::class, 'test']);
 
-// ---------- Audit ----------
-Flight::route('GET  /api/audit/logs',                               [AuditController::class, 'index']);
-Flight::route('GET  /api/audit/stats',                              [AuditController::class, 'stats']);
+// Config
+Flight::route('GET    /databases/@db/collections/@col/config',                [ConfigController::class, 'show']);
+Flight::route('POST   /databases/@db/collections/@col/config/save',           [ConfigController::class, 'save']);
+Flight::route('POST   /databases/@db/collections/@col/id-mode',               [ConfigController::class, 'idMode']);
 
-// ---------- Soft Deletes ----------
-Flight::route('POST /api/@db/@collection/soft-deletes/toggle',       [SoftDeleteController::class, 'toggle']);
-Flight::route('POST /api/@db/@collection/restore',                  [SoftDeleteController::class, 'restore']);
-Flight::route('POST /api/@db/@collection/force-delete',             [SoftDeleteController::class, 'forceDelete']);
+// Encryption
+Flight::route('POST   /databases/@db/collections/@col/encryption',            [EncryptionController::class, 'store']);
 
-// ---------- Hooks ----------
-Flight::route('GET  /api/@db/@collection/hooks',                    [HookController::class, 'index']);
+// Soft Deletes
+Flight::route('POST   /databases/@db/collections/@col/soft-deletes',          [SoftDeleteController::class, 'toggle']);
+Flight::route('POST   /databases/@db/collections/@col/restore',               [SoftDeleteController::class, 'restore']);
+Flight::route('POST   /databases/@db/collections/@col/force-delete',          [SoftDeleteController::class, 'forceDelete']);
 
-// ---------- Populate / Relations ----------
-Flight::route('POST /api/@db/@collection/populate',                 [RelationController::class, 'populate']);
+// Hooks
+Flight::route('GET    /databases/@db/collections/@col/hooks',                  [HookController::class, 'index']);
 
-// ---------- Indexes ----------
-Flight::route('GET    /api/@db/indexes',                            [IndexController::class, 'index']);
-Flight::route('POST   /api/@db/@collection/indexes',               [IndexController::class, 'store']);
-Flight::route('DELETE /api/@db/indexes/@name',                      [IndexController::class, 'destroy']);
+// Populate / Relations
+Flight::route('POST   /databases/@db/collections/@col/populate',              [RelationController::class, 'populate']);
 
-// ---------- Health & Monitoring ----------
-Flight::route('GET  /api/@db/health',                               [HealthController::class, 'show']);
-Flight::route('POST /api/@db/vacuum',                               [HealthController::class, 'vacuum']);
-Flight::route('GET  /api/@db/metrics',                              [HealthController::class, 'metrics']);
+// Indexes (collection-level: create)
+Flight::route('POST   /databases/@db/collections/@col/indexes',               [IndexController::class, 'store']);
 
-// ---------- ID Modes & Config ----------
-Flight::route('GET  /api/@db/@collection/config',                   [ConfigController::class, 'show']);
-Flight::route('POST /api/@db/@collection/id-mode',                  [ConfigController::class, 'idMode']);
-Flight::route('POST /api/@db/@collection/config/save',              [ConfigController::class, 'save']);
+// ═══════════════════════════════════════════════════════════════
+// Setup
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /setup/status',                       [SetupController::class, 'status']);
+Flight::route('POST   /setup/initialize',                   [SetupController::class, 'initialize']);
 
-// ---------- Transaction ----------
-Flight::route('POST /api/@db/transaction',                          [ConfigController::class, 'transaction']);
+// ═══════════════════════════════════════════════════════════════
+// Audit
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /audit/logs',                         [AuditController::class, 'index']);
+Flight::route('GET    /audit/stats',                        [AuditController::class, 'stats']);
 
-// ---------- Setup Wizard ----------
-Flight::route('GET  /api/setup/status',                             [SetupController::class, 'status']);
-Flight::route('POST /api/setup/initialize',                         [SetupController::class, 'initialize']);
+// ═══════════════════════════════════════════════════════════════
+// Status
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /status',                             [StatusController::class, 'index']);
 
-// ---------- Status ----------
-Flight::route('GET /api/status',                                    [StatusController::class, 'index']);
-
-// ---------- SSOT BC shim (deprecated) ----------
-Flight::route('GET  /api/@db/@collection/ssot',                    [StatusController::class, 'ssotGet']);
-Flight::route('PUT  /api/@db/@collection/ssot',                    [StatusController::class, 'ssotPut']);
-Flight::route('POST /api/@db/@collection/ssot/@any',               [StatusController::class, 'ssotAny']);
-Flight::route('GET  /api/ssot/@any',                               [StatusController::class, 'ssotRoot']);
+// ═══════════════════════════════════════════════════════════════
+// SSOT BC shim (deprecated)
+// ═══════════════════════════════════════════════════════════════
+Flight::route('GET    /ssot/@db/@col',                     [StatusController::class, 'ssotGet']);
+Flight::route('PUT    /ssot/@db/@col',                     [StatusController::class, 'ssotPut']);
+Flight::route('POST   /ssot/@db/@col/@any',                [StatusController::class, 'ssotAny']);
+Flight::route('GET    /ssot/@any',                         [StatusController::class, 'ssotRoot']);

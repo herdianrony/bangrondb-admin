@@ -73,28 +73,28 @@ const list = ref([])
 const name = ref('')
 
 async function load() {
-  const r = await axios.get('/api/databases')
+  const r = await axios.get('/databases')
   list.value = r.data.data
 }
 async function createDB() {
   if (!name.value) return
-  await axios.post('/api/databases', { name: name.value })
+  await axios.post('/databases', { name: name.value })
   name.value = ''
   load()
 }
 async function drop(db) {
   if (!confirm('Drop ' + db + ' ?')) return
-  await axios.delete('/api/databases/' + db)
+  await axios.delete('/databases/' + db)
   load()
 }
 async function renameDb(old) {
   const nn = prompt('Rename ' + old + ' to:', old + '_v2')
   if (!nn) return
-  await axios.post(`/api/databases/${old}/rename`, { new_name: nn })
+  await axios.post(`/databases/${old}/rename`, { new_name: nn })
   load()
 }
 function openDb(db) {
-  location.href = '/app/collections?db=' + db
+  location.href = '/collections?db=' + db
 }
 onMounted(load)
 </script>

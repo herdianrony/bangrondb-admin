@@ -34,7 +34,7 @@ import axios from 'axios'
 import { Settings, Save, RefreshCw } from 'lucide-vue-next'
 const db=ref('app'); const col=ref('users'); const cfg=ref({})
 const idMode=ref('auto'); const prefix=ref('USR')
-async function load(){ const r=await axios.get(`/api/${db.value}/${col.value}/config`); cfg.value=r.data }
-async function save(){ await axios.post(`/api/${db.value}/${col.value}/config/save`); load() }
-async function applyId(){ await axios.post(`/api/${db.value}/${col.value}/id-mode`, {mode:idMode.value, prefix: prefix.value}); load() }
+async function load(){ const r=await axios.get(`/databases/${db.value}/collections/${col.value}/config`); cfg.value=r.data }
+async function save(){ await axios.post(`/databases/${db.value}/collections/${col.value}/config/save`); load() }
+async function applyId(){ await axios.post(`/databases/${db.value}/collections/${col.value}/id-mode`, {mode:idMode.value, prefix: prefix.value}); load() }
 </script>

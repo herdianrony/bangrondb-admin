@@ -59,11 +59,11 @@
         <Shield :size="14" class="text-slate-400" />
         <b>API Endpoints</b>
       </div>
-      POST /api/auth/login → access_token (15m) + refresh_token (30d)<br/>
-      POST /api/auth/refresh {refresh_token} → rotate<br/>
-      POST /api/auth/logout → revoke access+refresh (blacklist)<br/>
-      POST /api/auth/revoke {jti} → manual revoke<br/>
-      GET /api/auth/tokens · GET /api/auth/blacklist
+      POST /auth/login → access_token (15m) + refresh_token (30d)<br/>
+      POST /auth/refresh {refresh_token} → rotate<br/>
+      POST /auth/logout → revoke access+refresh (blacklist)<br/>
+      POST /auth/revoke {jti} → manual revoke<br/>
+      GET /auth/tokens · GET /auth/blacklist
     </div>
   </div>
 </template>
@@ -73,8 +73,8 @@ import axios from 'axios'
 import { KeyRound, RefreshCw, AlertTriangle, Shield } from 'lucide-vue-next'
 const tokens = ref([])
 const blacklist = ref([])
-async function load(){ const r = await axios.get('/api/auth/tokens'); tokens.value = r.data.data||[] }
-async function loadBL(){ const r = await axios.get('/api/auth/blacklist'); blacklist.value = r.data.data||[] }
-async function revoke(jti){ await axios.post('/api/auth/revoke', {jti}); load(); loadBL() }
+async function load(){ const r = await axios.get('/auth/tokens'); tokens.value = r.data.data||[] }
+async function loadBL(){ const r = await axios.get('/auth/blacklist'); blacklist.value = r.data.data||[] }
+async function revoke(jti){ await axios.post('/auth/revoke', {jti}); load(); loadBL() }
 onMounted(()=>{ load(); loadBL() })
 </script>

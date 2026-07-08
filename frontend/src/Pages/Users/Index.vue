@@ -163,9 +163,9 @@ const result = ref('')
 const form = reactive({ _id:'', username:'', email:'', name:'', password:'', roles:['user'], active:true })
 
 async function load(){
-  const r = await axios.get('/api/admin/users').catch(()=>({data:{data:[]}}))
+  const r = await axios.get('/admin/users').catch(()=>({data:{data:[]}}))
   users.value = r.data.data || []
-  const rr = await axios.get('/api/admin/roles').catch(()=>({data:{data:[]}}))
+  const rr = await axios.get('/admin/roles').catch(()=>({data:{data:[]}}))
   allRoles.value = rr.data.data || []
 }
 function resetForm(){ Object.assign(form,{_id:'',username:'',email:'',name:'',password:'',roles:['user'],active:true}); result.value='' }
@@ -175,39 +175,39 @@ function editUser(u){
 async function save(){
   try{
     if(form._id){
-      await axios.put(`/api/admin/users/${form._id}`, {...form})
+      await axios.put(`/admin/users/${form._id}`, {...form})
       result.value = 'updated'
     }else{
-      const r = await axios.post('/api/admin/users', {...form})
+      const r = await axios.post('/admin/users', {...form})
       result.value = JSON.stringify(r.data, null, 2)
     }
     resetForm(); load()
   }catch(e){ result.value = JSON.stringify(e.response?.data||e.message, null, 2) }
 }
 async function resetPass(u){
-  const r = await axios.post(`/api/admin/users/${u._id}/reset-password`, {})
+  const r = await axios.post(`/admin/users/${u._id}/reset-password`, {})
   alert('Password baru: ' + r.data.new_password)
   load()
 }
 async function toggleActive(u){
-  await axios.post(`/api/admin/users/${u._id}/toggle-active`, {})
+  await axios.post(`/admin/users/${u._id}/toggle-active`, {})
   load()
 }
 async function revokeTokens(u){
-  await axios.post(`/api/admin/users/${u._id}/revoke-tokens`, {})
+  await axios.post(`/admin/users/${u._id}/revoke-tokens`, {})
   alert('Token untuk '+u.username+' telah dicabut')
   loadTokens()
 }
 async function loadTokens(){
-  const r = await axios.get('/api/auth/tokens').catch(()=>({data:{data:[]}}))
+  const r = await axios.get('/auth/tokens').catch(()=>({data:{data:[]}}))
   tokens.value = r.data.data || []
 }
 async function loadBlacklist(){
-  const r = await axios.get('/api/auth/blacklist').catch(()=>({data:{data:[]}}))
+  const r = await axios.get('/auth/blacklist').catch(()=>({data:{data:[]}}))
   blacklist.value = r.data.data || []
 }
 async function revokeJti(jti){
-  await axios.post('/api/auth/revoke', {jti, reason:'admin_manual'})
+  await axios.post('/auth/revoke', {jti, reason:'admin_manual'})
   loadTokens(); loadBlacklist()
 }
 

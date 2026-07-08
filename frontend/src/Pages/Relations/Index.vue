@@ -33,7 +33,7 @@ import { Link, Play, Database } from 'lucide-vue-next'
 const db=ref('app'); const col=ref('posts'); const localField=ref('author_id'); const foreign=ref('app.users'); const as=ref('author'); const filter=ref('{}')
 const out=ref('[]')
 async function run(){
-  const r = await axios.post(`/api/${db.value}/${col.value}/populate`, {
+  const r = await axios.post(`/databases/${db.value}/collections/${col.value}/populate`, {
     filter: JSON.parse(filter.value||'{}'),
     local_field: localField.value,
     foreign: foreign.value,

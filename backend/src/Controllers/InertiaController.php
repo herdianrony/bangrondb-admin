@@ -7,14 +7,12 @@ class InertiaController
 {
     /**
      * GET /
-     *
      * Renders Dashboard via Inertia (or Setup if not initialized).
      */
     public function index(): void
     {
         $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
 
-        // Check setup status — redirect to /app/setup if needed
         if ($this->needsSetup($dbPath)) {
             \Flight::inertia()->render('Setup/Index', [
                 'stats' => ['databases' => 0, 'collections' => 0, 'documents' => 0, 'total_size_mb' => 0, 'php_version' => PHP_VERSION, 'health' => ['status' => 'ok']],
@@ -28,7 +26,26 @@ class InertiaController
     }
 
     /**
-     * GET /app/@path
+     * GET /@path — SPA catch-all for all Vue pages.
+     *
+     * Maps clean URLs to Inertia page components:
+     *   /collections    → Collections/Index
+     *   /documents      → Documents/Index
+     *   /databases      → Databases/Index
+     *   /users          → Users/Index
+     *   /roles          → Roles/Index
+     *   /tokens         → Tokens/Index
+     *   /acl            → Acl/Index
+     *   /schema         → Schema/Index
+     *   /query          → Query/Index
+     *   /config         → Config/Index
+     *   /health         → Health/Index
+     *   /encryption     → Encryption/Index
+     *   /indexes        → Indexes/Index
+     *   /soft-deletes   → SoftDeletes/Index
+     *   /hooks          → Hooks/Index
+     *   /relations      → Relations/Index
+     *   /setup          → Setup/Index
      */
     public function page(string $path): void
     {
@@ -41,25 +58,28 @@ class InertiaController
         }
 
         $map = [
-            'databases'    => 'Databases/Index',
             'collections'  => 'Collections/Index',
             'documents'    => 'Documents/Index',
-            'query'        => 'Query/Index',
-            'encryption'   => 'Encryption/Index',
-            'schema'       => 'Schema/Index',
-            'acl'          => 'Acl/Index',
+            'databases'    => 'Databases/Index',
             'users'        => 'Users/Index',
             'roles'        => 'Roles/Index',
             'tokens'       => 'Tokens/Index',
-            'setup'        => 'Setup/Index',
+            'acl'          => 'Acl/Index',
+            'schema'       => 'Schema/Index',
+            'query'        => 'Query/Index',
+            'config'       => 'Config/Index',
+            'health'       => 'Health/Index',
+            'encryption'   => 'Encryption/Index',
+            'indexes'      => 'Indexes/Index',
             'soft-deletes' => 'SoftDeletes/Index',
             'hooks'        => 'Hooks/Index',
             'relations'    => 'Relations/Index',
-            'indexes'      => 'Indexes/Index',
-            'health'       => 'Health/Index',
-            'config'       => 'Config/Index',
+            'setup'        => 'Setup/Index',
         ];
-        $component = $map[explode('/', $path)[0] ?? ''] ?? 'Dashboard/Index';
+
+        $segment = explode('/', $path)[0] ?? '';
+        $component = $map[$segment] ?? 'Dashboard/Index';
+
         \Flight::inertia()->render($component, [
             'stats' => \Flight::bangron()->dashboardStats(),
             'path'  => $path

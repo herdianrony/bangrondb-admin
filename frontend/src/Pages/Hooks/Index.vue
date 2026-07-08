@@ -33,5 +33,5 @@ const hooks=[
   {event:'beforeRemove', desc:'Prevent deletion of protected records', code:"return false = cancel"},
   {event:'afterRemove', desc:'Cleanup', code:"afterRemove($doc)"},
 ]
-async function load(){ const r=await axios.get(`/api/${db.value}/${col.value}/hooks`); out.value=JSON.stringify(r.data,null,2)}
+async function load(){ const r=await axios.get(`/databases/${db.value}/collections/${col.value}/hooks`); out.value=JSON.stringify(r.data,null,2)}
 </script>

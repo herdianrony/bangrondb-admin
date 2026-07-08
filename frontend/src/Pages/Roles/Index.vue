@@ -60,17 +60,17 @@ import { Shield, Pencil, Trash2, Plus, Save, X } from 'lucide-vue-next'
 const roles = ref([])
 const perms = ['*','read','create','update','delete','manage_schema','manage_acl','find','count']
 const form = reactive({ _id:'', name:'', label:'', description:'', permissions:['read'] })
-async function load(){ const r = await axios.get('/api/admin/roles'); roles.value = r.data.data||[] }
+async function load(){ const r = await axios.get('/admin/roles'); roles.value = r.data.data||[] }
 function edit(r){ Object.assign(form, {_id:r.name, name:r.name, label:r.label||'', description:r.description||'', permissions:r.permissions||[] }) }
 function reset(){ Object.assign(form, {_id:'', name:'', label:'', description:'', permissions:['read'] }) }
 async function save(){
   if(form._id){
-    await axios.put(`/api/admin/roles/${form.name}`, form); 
+    await axios.put(`/admin/roles/${form.name}`, form); 
   }else{
-    await axios.post('/api/admin/roles', form)
+    await axios.post('/admin/roles', form)
   }
   reset(); load()
 }
-async function remove(r){ if(confirm('Hapus role '+r.name+'?')){ await axios.delete(`/api/admin/roles/${r.name}`); load() } }
+async function remove(r){ if(confirm('Hapus role '+r.name+'?')){ await axios.delete(`/admin/roles/${r.name}`); load() } }
 onMounted(load)
 </script>

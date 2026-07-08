@@ -32,7 +32,7 @@ const db=ref('app'); const col=ref('users'); const enabled=ref(true)
 const filter=ref('{ "username": "johndoe" }')
 const filter2=ref('{ "status": "banned" }')
 const out=ref('')
-async function toggle(){ const r=await axios.post(`/api/${db.value}/${col.value}/soft-deletes/toggle`, {enabled: enabled.value}); out.value=JSON.stringify(r.data,null,2)}
-async function restore(){ const r=await axios.post(`/api/${db.value}/${col.value}/restore`, {filter: JSON.parse(filter.value)}); out.value=JSON.stringify(r.data,null,2)}
-async function forceDelete(){ const r=await axios.post(`/api/${db.value}/${col.value}/force-delete`, {filter: JSON.parse(filter2.value)}); out.value=JSON.stringify(r.data,null,2)}
+async function toggle(){ const r=await axios.post(`/databases/${db.value}/collections/${col.value}/soft-deletes`, {enabled: enabled.value}); out.value=JSON.stringify(r.data,null,2)}
+async function restore(){ const r=await axios.post(`/databases/${db.value}/collections/${col.value}/restore`, {filter: JSON.parse(filter.value)}); out.value=JSON.stringify(r.data,null,2)}
+async function forceDelete(){ const r=await axios.post(`/databases/${db.value}/collections/${col.value}/force-delete`, {filter: JSON.parse(filter2.value)}); out.value=JSON.stringify(r.data,null,2)}
 </script>

@@ -306,7 +306,7 @@ if(authToken.value){
 
 async function doRegister(){
   try{
-    await axios.post('/api/auth/register', {
+    await axios.post('/auth/register', {
       username: loginForm.username,
       email: loginForm.username + '@local',
       password: loginForm.password,
@@ -317,7 +317,7 @@ async function doRegister(){
 }
 async function doLogin(){
   try{
-    const r = await axios.post('/api/auth/login', {
+    const r = await axios.post('/auth/login', {
       username: loginForm.username,
       password: loginForm.password
     })
@@ -336,19 +336,19 @@ function logout(){
 }
 function copyToken(){ if(authToken.value) navigator.clipboard.writeText(authToken.value) }
 async function testMe(){
-  const r = await axios.get('/api/auth/me').catch(e=>e.response)
+  const r = await axios.get('/auth/me').catch(e=>e.response)
   testResult.value = JSON.stringify(r.data, null, 2)
 }
 
 // ACL CRUD
 async function load(){
-  const r = await axios.get(`/api/${db.value}/${col.value}/acl`).catch(()=>({data:{}}))
+  const r = await axios.get(`/databases/${db.value}/collections/${col.value}/acl`).catch(()=>({data:{}}))
   if(r.data?.acl){ Object.keys(acl).forEach(k=>delete acl[k]); Object.assign(acl, r.data.acl) }
   testResult.value = JSON.stringify(r.data, null, 2)
   loadAudit()
 }
 async function save(){
-  await axios.put(`/api/${db.value}/${col.value}/acl`, {acl})
+  await axios.put(`/databases/${db.value}/collections/${col.value}/acl`, {acl})
   testResult.value = 'ACL saved to '+db.value+'.'+col.value
   loadAudit()
 }
@@ -369,7 +369,7 @@ function togglePerm(role, perm, on){
 
 // test
 async function testAccess(){
-  const r = await axios.post(`/api/${db.value}/${col.value}/acl/test`, {
+  const r = await axios.post(`/databases/${db.value}/collections/${col.value}/acl/test`, {
     roles: testRole.value.split(',').map(s=>s.trim()),
     action: testAction.value
   }).catch(e=>e.response)
@@ -377,7 +377,7 @@ async function testAccess(){
 }
 async function testWithToken(){
   // actually hit documents endpoint with current JWT
-  const r = await axios.get(`/api/${db.value}/${col.value}/documents?limit=1`).catch(e=>e.response)
+  const r = await axios.get(`/databases/${db.value}/collections/${col.value}/documents?limit=1`).catch(e=>e.response)
   testResult.value = JSON.stringify({status:r.status, data:r.data}, null, 2)
   loadAudit()
 }
@@ -424,7 +424,7 @@ function genApiKey(){
 // audit
 const audit = ref([])
 async function loadAudit(){
-  const r = await axios.get('/api/audit/logs?limit=50').catch(()=>({data:{data:[]}}))
+  const r = await axios.get('/audit/logs?limit=50').catch(()=>({data:{data:[]}}))
   audit.value = r.data.data || []
 }
 

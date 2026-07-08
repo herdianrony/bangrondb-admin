@@ -269,7 +269,7 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: '' })
 
 // ── State ──
 const dbs = ref([])
@@ -395,7 +395,7 @@ async function load() {
   }
   loading.value = true
   try {
-    const r = await api.get(`/${db.value}/collections`)
+    const r = await api.get(`/databases/${db.value}/collections`)
     const names = r.data.data || []
 
     collections.value = await Promise.all(
@@ -403,7 +403,7 @@ async function load() {
         const meta = { name, docCount: 0, fieldCount: 0, relationCount: 0 }
         try {
           // Fetch documents with limit=1 to get total count
-          const dr = await api.get(`/${db.value}/${name}/documents`, {
+          const dr = await api.get(`/databases/${db.value}/collections/${name}/documents`, {
             params: { limit: 1, skip: 0 },
           })
           meta.docCount = dr.data.total ?? dr.data.data?.length ?? 0
@@ -412,7 +412,7 @@ async function load() {
         }
         try {
           // Fetch schema to count fields and relations
-          const sr = await api.get(`/${db.value}/${name}/schema`)
+          const sr = await api.get(`/databases/${db.value}/collections/${name}/schema`)
           const schema = sr.data.schema || {}
           meta.fieldCount = Object.keys(schema).length
           meta.relationCount = Object.values(schema).filter(
@@ -465,13 +465,13 @@ async function createCollection() {
   creating.value = true
   createError.value = ''
   try {
-    await api.post(`/${db.value}/collections`, { name })
+    await api.post(`/databases/${db.value}/collections`, { name })
 
     // If template has schema, save it
     const tpl = templates[selectedTemplate.value]
     if (tpl && Object.keys(tpl.schema).length) {
       try {
-        await api.put(`/${db.value}/${name}/schema`, { schema: tpl.schema })
+        await api.post(`/databases/${db.value}/collections/${name}/schema`, { schema: tpl.schema })
       } catch (e) {
         // schema save failed but collection was created — continue
         console.warn('Schema save failed:', e)
@@ -491,7 +491,7 @@ async function createCollection() {
 // ── Delete ──
 async function confirmDelete(name) {
   try {
-    await api.delete(`/${db.value}/collections/${name}`)
+    await api.delete(`/databases/${db.value}/collections/${name}`)
     deleteTarget.value = null
     await load()
   } catch (e) {

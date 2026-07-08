@@ -286,7 +286,7 @@ import {
   Trash2, X, AlertTriangle, Loader2, Table2,
 } from 'lucide-vue-next'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: '' })
 const toast = useToast()
 
 // ── State ──
@@ -387,7 +387,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 async function loadCollections() {
   if (!db.value) return
   try {
-    const r = await api.get(`/${db.value}/collections`)
+    const r = await api.get(`/databases/${db.value}/collections`)
     collections.value = r.data.data
   } catch { collections.value = [] }
   collection.value = ''
@@ -408,7 +408,7 @@ async function onCollectionChange() {
 async function loadSchema() {
   if (!db.value || !collection.value) { schema.value = {}; return }
   try {
-    const r = await api.get(`/${db.value}/${collection.value}/schema`)
+    const r = await api.get(`/databases/${db.value}/collections/${collection.value}/schema`)
     schema.value = r.data.schema || {}
   } catch { schema.value = {} }
 }
@@ -427,7 +427,7 @@ async function loadDocs() {
       with_trashed: withTrashed.value ? 1 : 0,
       only_trashed: onlyTrashed.value ? 1 : 0,
     }
-    const r = await api.get(`/${db.value}/${collection.value}/documents`, { params })
+    const r = await api.get(`/databases/${db.value}/collections/${collection.value}/documents`, { params })
     docs.value = r.data.data
     total.value = r.data.total
     // Populate relations
@@ -482,7 +482,7 @@ async function populateRelations() {
     const missing = ids.filter(id => !(id in relationCache.value[cacheKey]))
     if (missing.length) {
       try {
-        const res = await api.post(`/${rel.db}/${rel.collection}/query`, {
+        const res = await api.post(`/databases/${rel.db}/collections/${rel.collection}/query`, {
           filter: { [rel.field || '_id']: { $in: missing } },
           limit: 200,
         })
@@ -573,7 +573,7 @@ async function doDelete() {
   if (!deleteTarget.value) return
   deleting.value = true
   try {
-    await api.delete(`/${db.value}/${collection.value}/documents`, {
+    await api.delete(`/databases/${db.value}/collections/${collection.value}/documents`, {
       params: { filter: JSON.stringify({ _id: deleteTarget.value._id }) },
     })
     toast.success('Dokumen berhasil dihapus')
@@ -589,7 +589,7 @@ async function doDelete() {
 async function bulkDelete(ids, clear) {
   if (!confirm(`Hapus ${ids.length} dokumen?`)) return
   try {
-    await api.delete(`/${db.value}/${collection.value}/documents`, {
+    await api.delete(`/databases/${db.value}/collections/${collection.value}/documents`, {
       params: { filter: JSON.stringify({ _id: { $in: ids } }) },
     })
     toast.success(`${ids.length} dokumen berhasil dihapus`)
@@ -603,7 +603,7 @@ async function bulkDelete(ids, clear) {
 // ── Inline Cell Edit ──
 async function onCellEdit({ id, field, value, row }) {
   try {
-    await api.post(`/${db.value}/${collection.value}/save`, { _id: id, [field]: value })
+    await api.post(`/databases/${db.value}/collections/${collection.value}/save`, { _id: id, [field]: value })
     toast.success('Field updated')
     loadDocs()
   } catch (e) {

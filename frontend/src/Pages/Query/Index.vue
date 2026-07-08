@@ -82,7 +82,7 @@ async function run(){
       sort: sort.value ? JSON.parse(sort.value) : {},
       limit: 50, skip: 0
     }
-    const r = await axios.post(`/api/${db.value}/${col.value}/query`, body)
+    const r = await axios.post(`/databases/${db.value}/collections/${col.value}/query`, body)
     results.value = r.data.data
   }catch(e){ results.value = [{error: e.message}] }
 }
