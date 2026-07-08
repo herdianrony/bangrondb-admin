@@ -25,7 +25,10 @@ class SetupController
     {
         $dbPath     = self::dbPath();
         $client     = new Client($dbPath);
-        $hasAuth    = $client->dbExists('auth') && $client->collectionExists('auth', 'users');
+        $hasAuth    = $client->dbExists('auth') && 
+                      $client->collectionExists('auth', 'users') &&
+                      $client->collectionExists('auth', 'roles') &&
+                      $client->collectionExists('auth', 'permissions');
         $adminExists = false;
         $userCount  = 0;
 
@@ -81,16 +84,23 @@ class SetupController
         $client = new Client($dbPath);
 
         try {
-            // ── Auth database + roles ──
+            // ── Auth database + roles + permissions ──
             if (!$client->dbExists('auth')) {
                 $client->createDB('auth');
             }
-            foreach (['roles', 'users'] as $c) {
+            foreach (['roles', 'users', 'permissions'] as $c) {
                 if (!$client->collectionExists('auth', $c)) {
                     $client->createCollection('auth', $c);
                 }
             }
 
+            // Seed Permissions
+            $permissions = $client->selectCollection('auth', 'permissions');
+            foreach ($this->seedPermissions() as $p) {
+                try { $permissions->save($p); } catch (Throwable $e) {}
+            }
+
+            // Seed Roles
             $roles = $client->selectCollection('auth', 'roles');
             foreach ($this->seedRoles() as $r) {
                 try { $roles->save($r); } catch (Throwable $e) {}
@@ -201,6 +211,19 @@ class SetupController
             ['_id' => 'editor',     'name' => 'editor',     'label' => 'Editor',                'permissions' => ['read', 'create', 'update'], 'is_system' => true],
             ['_id' => 'user',       'name' => 'user',       'label' => 'User',                  'permissions' => ['read'], 'is_system' => true],
             ['_id' => 'guest',      'name' => 'guest',      'label' => 'Guest',                 'permissions' => [], 'is_system' => true],
+        ];
+    }
+
+    private function seedPermissions(): array
+    {
+        return [
+            ['_id' => 'read',           'name' => 'read',           'label' => 'Read',           'description' => 'Can read data'],
+            ['_id' => 'create',         'name' => 'create',         'label' => 'Create',         'description' => 'Can create new records'],
+            ['_id' => 'update',         'name' => 'update',         'label' => 'Update',         'description' => 'Can update existing records'],
+            ['_id' => 'delete',         'name' => 'delete',         'label' => 'Delete',         'description' => 'Can delete records'],
+            ['_id' => 'manage_schema',  'name' => 'manage_schema',  'label' => 'Manage Schema',  'description' => 'Can modify collection schemas'],
+            ['_id' => 'manage_acl',     'name' => 'manage_acl',     'label' => 'Manage ACL',     'description' => 'Can manage access control'],
+            ['_id' => 'manage_users',   'name' => 'manage_users',   'label' => 'Manage Users',   'description' => 'Can manage users and roles'],
         ];
     }
 
