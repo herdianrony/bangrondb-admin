@@ -9,7 +9,7 @@ class AuditController
 {
     private function dbPath(): string
     {
-        return $_ENV['DB_PATH'] ?? dirname(__DIR__, 2) . '/storage/data';
+        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
     }
 
     /**

@@ -12,7 +12,7 @@ class InertiaController
      */
     public function index(): void
     {
-        $dbPath = $_ENV['DB_PATH'] ?? dirname(__DIR__, 3) . '/storage/data';
+        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
 
         // Check setup status — redirect to /app/setup if needed
         if ($this->needsSetup($dbPath)) {
@@ -32,7 +32,7 @@ class InertiaController
      */
     public function page(string $path): void
     {
-        $dbPath = $_ENV['DB_PATH'] ?? dirname(__DIR__, 3) . '/storage/data';
+        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
 
         // Guard: redirect to setup if not initialized
         if ($this->needsSetup($dbPath)) {

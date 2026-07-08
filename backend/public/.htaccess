@@ -1,17 +1,23 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
+# Bangron Studio — public directory
+# Only allow index.php and build assets
 
-  # Serve static files directly (build assets, favicon, etc.)
-  RewriteCond %{REQUEST_FILENAME} -f
-  RewriteRule ^ - [L]
+RewriteEngine On
 
-  # Route everything else to index.php
-  RewriteRule ^ index.php [QSA,L]
-</IfModule>
+# Serve static files directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
 
-# Cache build assets aggressively
+# Block access to sensitive paths
+RewriteRule ^storage/ - [F,L]
+RewriteRule ^\.env - [F,L]
+RewriteRule ^var/ - [F,L]
+
+# Route everything else to index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Security headers
 <IfModule mod_headers.c>
-  <FilesMatch "\.(js|css|svg|png|jpg|jpeg|gif|webp|woff2)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
-  </FilesMatch>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
 </IfModule>

@@ -1,0 +1,3 @@
+# Deny all access to storage directory
+# This is a defense-in-depth measure — storage/ should NEVER be inside public/
+Require all denied

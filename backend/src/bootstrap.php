@@ -25,7 +25,31 @@ if (file_exists(__DIR__ . '/../.env')) {
 
 // ─── Paths ────────────────────────────────────────────────────────────
 
-$dbPath = $_ENV['DB_PATH'] ?? realpath(__DIR__ . '/../storage/data');
+// Resolve DB_PATH from .env or use default backend/storage/data
+// NEVER use relative paths — always resolve from __DIR__ to avoid CWD issues
+$defaultDbPath = realpath(__DIR__ . '/../storage/data');
+$envDbPath     = $_ENV['DB_PATH'] ?? null;
+
+if ($envDbPath !== null) {
+    // If env path is relative, resolve it relative to backend/ directory
+    if (!str_starts_with($envDbPath, '/') && !str_starts_with($envDbPath, '\\')) {
+        $dbPath = realpath(__DIR__ . '/../' . $envDbPath);
+    } else {
+        $dbPath = realpath($envDbPath);
+    }
+    // Fallback to default if env path doesn't resolve
+    if (!$dbPath) {
+        $dbPath = $defaultDbPath;
+    }
+} else {
+    $dbPath = $defaultDbPath;
+}
+
+// Define global constant so all controllers use the SAME path
+if (!defined('BANGRON_DB_PATH')) {
+    define('BANGRON_DB_PATH', $dbPath);
+}
+
 if (!is_dir($dbPath)) {
     @mkdir($dbPath, 0777, true);
 }
