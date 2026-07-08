@@ -73,11 +73,11 @@ try {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 {$cssTag}
 <style>
-/* Minimal loading state — replaced by Vue app */
+/* Minimal loading skeleton — scoped to .is-loading on #app, removed by Vue on mount */
 :root{color-scheme:dark;--bg:#0f1117;--panel:#161922;--accent:#6366f1}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:#e2e8f0;overflow:hidden;height:100vh}
-#app{display:flex;height:100vh}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:#e2e8f0}
+#app.is-loading{display:flex;height:100vh;overflow:hidden}
 .sidebar-skeleton{width:260px;background:var(--panel);border-right:1px solid rgba(255,255,255,.07);flex-shrink:0;padding:20px;display:flex;flex-direction:column;gap:12px}
 .sidebar-skeleton .brand-s{width:140px;height:20px;background:rgba(255,255,255,.06);border-radius:8px}
 .sidebar-skeleton .mode-s{width:100%;height:36px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid rgba(255,255,255,.07)}
@@ -98,7 +98,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;backgrou
 </style>
 </head>
 <body>
-<div id="app" data-page="{$pageJson}">
+<div id="app" class="is-loading" data-page="{$pageJson}">
   <div class="sidebar-skeleton">
     <div class="brand-s"></div>
     <div class="mode-s"></div>

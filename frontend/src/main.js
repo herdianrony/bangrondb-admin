@@ -12,6 +12,8 @@ createInertiaApp({
     return page
   },
   setup({ el, App, props, plugin }) {
+    // Remove skeleton loading class so CSS flex/height no longer constrains #app
+    el.classList.remove('is-loading')
     createApp({ render: () => h(App, props) })
       .use(plugin)
       .mount(el)

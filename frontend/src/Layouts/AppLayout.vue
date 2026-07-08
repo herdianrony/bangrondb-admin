@@ -13,21 +13,30 @@
     ]">
       <div class="p-4 flex flex-col h-full">
         <!-- Brand -->
-        <div class="flex items-center gap-3 px-2 mb-5 mt-1">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
-            <Box class="w-4 h-4 text-white" />
-          </div>
-          <div class="min-w-0">
-            <div class="font-bold text-[14px] text-white tracking-tight">Bangron Studio</div>
-            <div class="text-[10px] text-slate-500 font-medium">Backend Platform</div>
-          </div>
+        <div class="flex items-center gap-3 px-2 mb-4 mt-1">
+          <a href="/" class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
+              <Box class="w-4 h-4 text-white" />
+            </div>
+            <div class="min-w-0">
+              <div class="font-bold text-[14px] text-white tracking-tight">Bangron Studio</div>
+              <div class="text-[10px] text-slate-500 font-medium">Backend Platform</div>
+            </div>
+          </a>
           <button class="ml-auto lg:hidden p-1.5 rounded-lg hover:bg-white/5 text-slate-500" @click="mobileOpen=false">
             <X class="w-4 h-4" />
           </button>
         </div>
 
-        <!-- Navigation -->
+        <!-- Database Tree -->
         <nav class="space-y-0.5 flex-1">
+          <div class="flex items-center justify-between px-3 py-1">
+            <div class="nav-group-label">Databases</div>
+            <button class="text-slate-600 hover:text-indigo-400 transition-colors" @click="openCreateDb" title="New Database">
+              <Plus class="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <a href="/"
              :class="['nav-item', isActive('/') ? 'active' : '']"
              @click="mobileOpen=false">
@@ -35,70 +44,41 @@
             <span>Overview</span>
           </a>
 
-          <div class="pt-4 pb-1.5">
-            <div class="nav-group-label">Data</div>
-          </div>
-          <a href="/collections"
-             :class="['nav-item', isActive('/collections') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <FolderOpen class="nav-item-icon" />
-            <span>Collections</span>
-          </a>
-          <a href="/documents"
-             :class="['nav-item', isActive('/documents') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <FileText class="nav-item-icon" />
-            <span>Documents</span>
-          </a>
-          <a href="/databases"
-             :class="['nav-item', isActive('/databases') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <Database class="nav-item-icon" />
-            <span>Databases</span>
-          </a>
+          <!-- Database list -->
+          <div v-for="db in databases" :key="db.name" class="db-tree-item">
+            <a :href="`/databases/${db.name}`"
+               :class="['nav-item', isDbActive(db.name) ? 'active' : '']"
+               @click="toggleDb(db.name); mobileOpen=false">
+              <Database class="nav-item-icon" />
+              <span class="truncate flex-1">{{ db.name }}</span>
+              <ChevronRight :class="['w-3.5 h-3.5 text-slate-600 transition-transform duration-200', expandedDbs.has(db.name) ? 'rotate-90' : '']" />
+            </a>
 
+            <!-- Collections under this DB -->
+            <div v-if="expandedDbs.has(db.name)" class="ml-5 pl-3 border-l border-white/[0.05] space-y-0.5 mt-0.5 mb-1">
+              <div v-if="db.loading" class="px-3 py-2 text-[11px] text-slate-600">Loading...</div>
+              <a v-for="col in db.collections" :key="col"
+                 :href="`/databases/${db.name}/collections/${col}`"
+                 :class="['nav-item !py-1.5 text-[12px]', isColActive(db.name, col) ? 'active' : '']"
+                 @click="mobileOpen=false">
+                <FolderOpen class="w-[16px] h-[16px] flex-shrink-0" />
+                <span class="truncate">{{ col }}</span>
+              </a>
+              <div v-if="!db.loading && db.collections.length === 0" class="px-3 py-1.5 text-[11px] text-slate-700">No collections</div>
+            </div>
+          </div>
+
+          <div v-if="databases.length === 0 && !dbLoading" class="px-3 py-3 text-[11px] text-slate-700 text-center">No databases</div>
+
+          <!-- Access Section -->
           <div class="pt-4 pb-1.5">
             <div class="nav-group-label">Access</div>
           </div>
-          <a href="/users"
-             :class="['nav-item', isActive('/users') ? 'active' : '']"
+          <a href="/auth/login"
+             :class="['nav-item', isActive('/auth/') ? 'active' : '']"
              @click="mobileOpen=false">
             <Users class="nav-item-icon" />
             <span>Users</span>
-          </a>
-          <a href="/roles"
-             :class="['nav-item', isActive('/roles') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <Shield class="nav-item-icon" />
-            <span>Roles</span>
-          </a>
-
-          <div class="pt-4 pb-1.5">
-            <div class="nav-group-label">Developer</div>
-          </div>
-          <a href="/schema"
-             :class="['nav-item', isActive('/schema') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <Puzzle class="nav-item-icon" />
-            <span>Schema</span>
-          </a>
-          <a href="/query"
-             :class="['nav-item', isActive('/query') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <Search class="nav-item-icon" />
-            <span>Query</span>
-          </a>
-          <a href="/acl"
-             :class="['nav-item', isActive('/acl') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <Lock class="nav-item-icon" />
-            <span>ACL</span>
-          </a>
-          <a href="/tokens"
-             :class="['nav-item', isActive('/tokens') ? 'active' : '']"
-             @click="mobileOpen=false">
-            <KeyRound class="nav-item-icon" />
-            <span>Tokens</span>
           </a>
         </nav>
 
@@ -127,7 +107,7 @@
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 animate-fade-in">
+      <main class="flex-1 p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 animate-fade-in overflow-y-auto">
         <slot />
       </main>
     </div>
@@ -138,69 +118,87 @@
         <LayoutDashboard />
         <span>Home</span>
       </a>
-      <a href="/collections" :class="['bottom-nav-item', isActive('/collections') ? 'active' : '']">
-        <FolderOpen />
-        <span>Data</span>
-      </a>
-      <a href="/documents" :class="['bottom-nav-item', isActive('/documents') ? 'active' : '']">
-        <FileText />
-        <span>Docs</span>
-      </a>
-      <a href="/users" :class="['bottom-nav-item', isActive('/users') ? 'active' : '']">
+      <a href="/auth/login" :class="['bottom-nav-item', isActive('/auth/') ? 'active' : '']">
         <Users />
         <span>Users</span>
       </a>
-      <a href="/schema" :class="['bottom-nav-item', isActive('/schema') ? 'active' : '']">
-        <Settings />
-        <span>More</span>
-      </a>
     </nav>
 
-    <!-- Global Toast Notifications -->
+    <!-- Global Toast -->
     <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import axios from 'axios'
 import {
-  LayoutDashboard, Database, FolderOpen, FileText, Search, Puzzle,
-  Users, Shield, KeyRound, Lock, Settings,
-  Menu, X, Box
+  LayoutDashboard, Database, FolderOpen, Users,
+  Menu, X, Box, Plus, ChevronRight,
 } from 'lucide-vue-next'
 import ToastContainer from '@/Components/ToastContainer.vue'
 
+const api = axios.create({ baseURL: '' })
 const mobileOpen = ref(false)
+const dbLoading = ref(false)
+const databases = reactive([])
+const expandedDbs = reactive(new Set())
 
-const titleMap = {
-  '/': 'Overview',
-  '/collections': 'Collections',
-  '/documents': 'Documents',
-  '/databases': 'Databases',
-  '/users': 'Users',
-  '/roles': 'Roles',
-  '/tokens': 'Tokens',
-  '/acl': 'Access Control',
-  '/schema': 'Schema',
-  '/query': 'Query',
-  '/config': 'Settings',
-  '/health': 'Health',
-  '/encryption': 'Encryption',
-  '/indexes': 'Indexes',
-  '/soft-deletes': 'Soft Deletes',
-  '/hooks': 'Hooks',
-  '/relations': 'Relations',
-  '/setup': 'Setup',
-}
-
-const pageTitle = computed(() => {
-  const path = typeof window !== 'undefined' ? window.location.pathname : '/'
-  return titleMap[path] || 'Bangron Studio'
+// Expand the current DB based on URL
+onMounted(async () => {
+  await loadDatabases()
+  const path = window.location.pathname
+  const m = path.match(/^\/databases\/([^/]+)/)
+  if (m) toggleDb(m[1])
 })
 
+async function loadDatabases() {
+  dbLoading.value = true
+  try {
+    const r = await api.get('/databases')
+    const names = r.data.data || []
+    databases.length = 0
+    for (const name of names) {
+      databases.push(reactive({ name, collections: [], loading: false }))
+    }
+  } catch {}
+  finally { dbLoading.value = false }
+}
+
+async function toggleDb(name) {
+  if (expandedDbs.has(name)) return
+  expandedDbs.add(name)
+  const db = databases.find(d => d.name === name)
+  if (!db || db.loading) return
+  db.loading = true
+  try {
+    const r = await api.get(`/databases/${name}/collections`)
+    db.collections = r.data.data || []
+  } catch { db.collections = [] }
+  finally { db.loading = false }
+}
+
+function openCreateDb() {
+  // Use Inertia visit or simple prompt for now
+  const name = prompt('Database name:')
+  if (!name || !/^[a-z0-9_]+$/.test(name)) return
+  api.post('/databases', { name }).then(() => loadDatabases()).catch(e => alert(e.response?.data?.message || e.message))
+}
+
 const isActive = (href) => {
-  if (typeof window === 'undefined') return false
   if (href === '/') return window.location.pathname === '/'
   return window.location.pathname.startsWith(href)
 }
+
+const isDbActive = (name) => window.location.pathname === `/databases/${name}`
+const isColActive = (db, col) => window.location.pathname === `/databases/${db}/collections/${col}`
+
+const pageTitle = computed(() => {
+  const path = window.location.pathname
+  const m = path.match(/^\/databases\/([^/]+)(?:\/collections\/([^/]+))?/)
+  if (m) return m[2] ? m[2] : m[1]
+  if (path === '/') return 'Overview'
+  if (path.startsWith('/auth/')) return 'Auth'
+  return 'Bangron Studio'
+})
 </script>

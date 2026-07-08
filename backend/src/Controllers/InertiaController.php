@@ -7,7 +7,7 @@ class InertiaController
 {
     /**
      * GET /
-     * Renders Dashboard via Inertia (or Setup if not initialized).
+     * Renders Dashboard (database list overview) or Setup if not initialized.
      */
     public function index(): void
     {
@@ -26,63 +26,76 @@ class InertiaController
     }
 
     /**
-     * GET /@path — SPA catch-all for all Vue pages.
-     *
-     * Maps clean URLs to Inertia page components:
-     *   /collections    → Collections/Index
-     *   /documents      → Documents/Index
-     *   /databases      → Databases/Index
-     *   /users          → Users/Index
-     *   /roles          → Roles/Index
-     *   /tokens         → Tokens/Index
-     *   /acl            → Acl/Index
-     *   /schema         → Schema/Index
-     *   /query          → Query/Index
-     *   /config         → Config/Index
-     *   /health         → Health/Index
-     *   /encryption     → Encryption/Index
-     *   /indexes        → Indexes/Index
-     *   /soft-deletes   → SoftDeletes/Index
-     *   /hooks          → Hooks/Index
-     *   /relations      → Relations/Index
-     *   /setup          → Setup/Index
+     * GET /setup
      */
-    public function page(string $path): void
+    public function setup(): void
+    {
+        \Flight::inertia()->render('Setup/Index', []);
+    }
+
+    /**
+     * GET /auth/login
+     */
+    public function authLogin(): void
+    {
+        \Flight::inertia()->render('Auth/Login', []);
+    }
+
+    /**
+     * GET /auth/register
+     */
+    public function authRegister(): void
+    {
+        \Flight::inertia()->render('Auth/Register', []);
+    }
+
+    /**
+     * GET /databases/@db
+     * Shows a specific database with its collections.
+     */
+    public function database(string $db): void
     {
         $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
 
-        // Guard: redirect to setup if not initialized
         if ($this->needsSetup($dbPath)) {
             header('Location: /');
             exit;
         }
 
-        $map = [
-            'collections'  => 'Collections/Index',
-            'documents'    => 'Documents/Index',
-            'databases'    => 'Databases/Index',
-            'users'        => 'Users/Index',
-            'roles'        => 'Roles/Index',
-            'tokens'       => 'Tokens/Index',
-            'acl'          => 'Acl/Index',
-            'schema'       => 'Schema/Index',
-            'query'        => 'Query/Index',
-            'config'       => 'Config/Index',
-            'health'       => 'Health/Index',
-            'encryption'   => 'Encryption/Index',
-            'indexes'      => 'Indexes/Index',
-            'soft-deletes' => 'SoftDeletes/Index',
-            'hooks'        => 'Hooks/Index',
-            'relations'    => 'Relations/Index',
-            'setup'        => 'Setup/Index',
-        ];
+        \Flight::inertia()->render('Databases/Show', [
+            'db'     => $db,
+            'stats'  => \Flight::bangron()->dashboardStats(),
+        ]);
+    }
 
-        $segment = explode('/', $path)[0] ?? '';
-        $component = $map[$segment] ?? 'Dashboard/Index';
+    /**
+     * GET /databases/@db/collections/@col
+     * Shows documents inside a specific collection.
+     */
+    public function collection(string $db, string $col): void
+    {
+        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
 
-        \Flight::inertia()->render($component, [
+        if ($this->needsSetup($dbPath)) {
+            header('Location: /');
+            exit;
+        }
+
+        \Flight::inertia()->render('Collections/Show', [
+            'db'    => $db,
+            'col'   => $col,
             'stats' => \Flight::bangron()->dashboardStats(),
-            'path'  => $path
+        ]);
+    }
+
+    /**
+     * GET /@path — catch-all fallback for unknown routes.
+     */
+    public function fallback(string $path): void
+    {
+        \Flight::inertia()->render('Dashboard/Index', [
+            'stats'  => \Flight::bangron()->dashboardStats(),
+            'path'   => $path,
         ]);
     }
 
