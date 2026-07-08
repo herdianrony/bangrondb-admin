@@ -1,482 +1,675 @@
 <template>
-  <div class="space-y-5">
-    <!-- selector -->
-    <div class="card">
-      <div class="flex flex-wrap gap-3 items-end">
-        <div><label class="section-label flex items-center gap-1"><Database :size="13"/> Database</label>
-          <select v-model="db" @change="loadCols" class="input w-44">
-            <option value="">Select database…</option>
+  <div class="space-y-5 animate-fade-in">
+    <!-- ═══ Breadcrumb & Header ═══ -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="/app/collections" class="btn-ghost-sm !p-2 flex-shrink-0" title="Back to Collections">
+          <ArrowLeft class="w-4 h-4" />
+        </a>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="page-title truncate">{{ collection || 'Documents' }}</h1>
+            <span v-if="loading" class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+          </div>
+          <p class="page-desc flex items-center gap-2">
+            <Database class="w-3 h-3" />
+            <span class="font-mono text-slate-400">{{ db }}</span>
+            <span v-if="collection" class="text-slate-600">/</span>
+            <span v-if="collection" class="font-mono text-slate-400">{{ collection }}</span>
+            <span v-if="schema && Object.keys(schema).length" class="text-slate-700">|</span>
+            <span v-if="schema && Object.keys(schema).length" class="text-slate-500">{{ Object.keys(schema).length }} fields</span>
+          </p>
+        </div>
+      </div>
+      <button class="btn flex-shrink-0" @click="openCreate">
+        <Plus class="w-4 h-4" />
+        <span class="hidden sm:inline">New Record</span>
+      </button>
+    </div>
+
+    <!-- ═══ Selector Card ═══ -->
+    <div v-if="!collection" class="card">
+      <div class="flex flex-wrap gap-4 items-end">
+        <div class="w-full sm:w-56">
+          <label class="section-label flex items-center gap-1.5">
+            <Database :size="13" class="text-slate-500" />
+            Database
+          </label>
+          <select v-model="db" @change="loadCollections" class="select">
+            <option value="">Select database...</option>
             <option v-for="d in databases" :key="d" :value="d">{{ d }}</option>
           </select>
         </div>
-        <div><label class="section-label flex items-center gap-1"><FolderOpen :size="13"/> Collection</label>
-          <select v-model="collection" @change="onCollectionChange" class="input w-48">
-            <option value="">Select collection…</option>
+        <div class="w-full sm:w-64">
+          <label class="section-label flex items-center gap-1.5">
+            <FolderOpen :size="13" class="text-slate-500" />
+            Collection
+          </label>
+          <select v-model="collection" @change="onCollectionChange" class="select">
+            <option value="">Select collection...</option>
             <option v-for="c in collections" :key="c" :value="c">{{ c }}</option>
           </select>
         </div>
-        <div class="flex items-center gap-3 text-xs ml-auto">
-          <label class="flex items-center gap-1"><input type="checkbox" v-model="autoPopulate"> auto populate relations</label>
-          <label class="flex items-center gap-1"><input type="checkbox" v-model="tableMode"> table mode</label>
-          <button class="btn-ghost-sm flex items-center gap-1" @click="loadDocs"><RefreshCw :size="14"/> Refresh</button>
-          <button class="btn-sm flex items-center gap-1" @click="openInsert"><Plus :size="14"/> Insert</button>
-        </div>
-      </div>
-      <div class="flex gap-3 mt-3 text-xs flex-wrap items-center">
-        <label><input type="checkbox" v-model="withTrashed"> withTrashed</label>
-        <label><input type="checkbox" v-model="onlyTrashed"> onlyTrashed</label>
-        <span class="badge badge-info">total: {{ total }}</span>
-        <span class="badge badge-info">limit {{ limit }} skip {{ skip }}</span>
-        <span v-if="Object.keys(schema).length" class="badge badge-success">schema: {{ Object.keys(schema).length }} fields</span>
-        <span v-if="relationFields.length" class="badge badge-info">relations: {{ relationFields.map(r=>r.field).join(', ') }}</span>
       </div>
     </div>
 
-    <!-- Table auto columns -->
-    <div class="card overflow-auto">
-      <div v-if="tableMode && columns.length" class="table-container">
-        <table class="data-table w-full text-sm min-w-[800px]">
-          <thead>
-            <tr class="text-slate-400 border-b border-slate-800">
-              <th class="text-left py-2 px-2 w-12">#</th>
-              <th v-for="col in columns" :key="col.field"
-                  class="text-left py-2 px-3 cursor-pointer select-none whitespace-nowrap"
-                  :class="col.sortable ? 'hover:text-white' : ''"
-                  @click="col.sortable && toggleSort(col.field)">
-                <div class="flex items-center gap-1">
-                  {{ col.label }}
-                  <span v-if="col.sortable" class="text-[10px] inline-flex items-center">
-                    <ChevronUp v-if="sortField===col.field && sortDir===1" :size="12"/>
-                    <ChevronDown v-else-if="sortField===col.field && sortDir===-1" :size="12"/>
-                    <ArrowUpDown v-else :size="12" class="opacity-40"/>
-                  </span>
-                </div>
-                <div class="text-[10px] text-slate-500">{{ col.type }}<span v-if="col.relation"> • rel</span></div>
-              </th>
-              <th class="text-right px-2 w-28">Actions</th>
-            </tr>
-            <!-- filter row -->
-            <tr v-if="hasFilterable" class="border-b border-slate-800 bg-slate-950/50">
-              <td class="px-2 py-1 text-[10px] text-slate-500 flex items-center gap-1"><Filter :size="10"/></td>
-              <td v-for="col in columns" :key="'f-'+col.field" class="px-2 py-1">
-                <input v-if="col.filterable"
-                  v-model="columnFilters[col.field]"
-                  @keyup.enter="applyColumnFilter"
-                  :placeholder="col.label"
-                  class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs"/>
-                <span v-else class="text-slate-700 text-[10px]">–</span>
-              </td>
-              <td class="text-right px-2">
-                <button class="text-[10px] text-indigo-300" @click="applyColumnFilter">Apply</button>
-                <button class="text-[10px] text-slate-500 ml-2" @click="clearColumnFilter">Clear</button>
-              </td>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(doc,i) in docs" :key="doc._id" class="border-b border-slate-900 card-hover">
-              <td class="px-2 py-2 text-slate-500 text-xs">{{ skip + i +1 }}</td>
-              <td v-for="col in columns" :key="col.field" class="px-3 py-2 align-top max-w-[260px]">
-                <!-- relation display -->
-                <template v-if="col.relation">
-                  <span class="text-cyan-300">
-                    {{ getRelationDisplay(col, doc[col.field]) || doc[col.field] || '–' }}
-                  </span>
-                  <div class="text-[10px] text-slate-500 font-mono">{{ doc[col.field] }}</div>
-                </template>
-                <!-- enum badge -->
-                <template v-else-if="col.badge && doc[col.field]">
-                  <span :class="badgeClass(col, doc[col.field])">{{ doc[col.field] }}</span>
-                </template>
-                <!-- tags -->
-                <template v-else-if="col.type==='tags' && Array.isArray(doc[col.field])">
-                  <span v-for="t in doc[col.field]" :key="t" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full mr-1">{{ t }}</span>
-                </template>
-                <!-- bool -->
-                <template v-else-if="col.type==='bool' || col.type==='boolean'">
-                  <Check v-if="doc[col.field]" :size="15" class="text-emerald-400"/>
-                  <X v-else :size="15" class="text-slate-500"/>
-                </template>
-                <!-- default -->
-                <template v-else>
-                  <span class="truncate block" :title="String(doc[col.field] ?? '')">
-                    {{ formatCell(doc[col.field]) }}
-                  </span>
-                </template>
-              </td>
-              <td class="text-right px-2">
-                <button class="btn-ghost-sm inline-flex items-center justify-center p-1.5 mr-1" title="Edit" @click="edit(doc)"><Pencil :size="14" class="text-indigo-300"/></button>
-                <button class="btn-ghost-sm inline-flex items-center justify-center p-1.5" title="Delete" @click="removeDoc(doc)"><Trash2 :size="14" class="text-red-400"/></button>
-              </td>
-            </tr>
-            <tr v-if="!docs.length"><td :colspan="columns.length+2" class="py-8 text-center text-slate-400 empty-state">{{ collection ? 'No data found' : 'Select a database and collection' }}</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- fallback JSON view -->
-      <div v-else class="table-container">
-        <table class="data-table w-full text-sm">
-          <thead><tr class="text-slate-400"><th class="text-left">_id</th><th class="text-left">Document</th><th class="text-right">Actions</th></tr></thead>
-          <tbody>
-            <tr v-for="doc in docs" :key="doc._id" class="border-t border-slate-800 card-hover">
-              <td class="py-2 pr-3 font-mono text-xs text-indigo-300">{{ doc._id }}</td>
-              <td><pre class="text-xs whitespace-pre-wrap code-block">{{ prettyPopulated(doc) }}</pre></td>
-              <td class="text-right">
-                <button class="btn-ghost-sm inline-flex items-center justify-center p-1.5 mr-1" title="Edit" @click="edit(doc)"><Pencil :size="14" class="text-indigo-300"/></button>
-                <button class="btn-ghost-sm inline-flex items-center justify-center p-1.5" title="Delete" @click="removeDoc(doc)"><Trash2 :size="14" class="text-red-300"/></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="flex justify-between items-center mt-3 text-xs">
-        <div class="flex gap-2">
-          <button class="btn-ghost-sm inline-flex items-center gap-1" :disabled="skip===0" @click="prevPage"><ChevronLeft :size="14"/> Prev</button>
-          <button class="btn-ghost-sm inline-flex items-center gap-1" @click="nextPage">Next <ChevronRight :size="14"/></button>
-          <select v-model.number="limit" @change="skip=0;loadDocs()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1">
-            <option :value="10">10</option><option :value="25">25</option><option :value="50">50</option><option :value="100">100</option>
-          </select>
-        </div>
-        <div class="text-slate-400">page {{ Math.floor(skip/limit)+1 }} • {{ total }} total</div>
-      </div>
-    </div>
-
-    <!-- Insert/Edit Modal – Schema Aware -->
-    <div v-if="showInsert || editing" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto" @click.self="closeModal">
-      <div class="card w-full max-w-3xl my-8">
-        <div class="flex justify-between items-start mb-3">
-          <div>
-            <h3 class="font-bold text-lg">{{ editing ? 'Edit Document' : 'Insert Document' }}</h3>
-            <div class="text-xs text-slate-400">{{ db }} / {{ collection }} • 
-              <span v-if="Object.keys(schema).length">{{ Object.keys(schema).length }} field schema • {{ relationFields.length }} relation</span>
-              <span v-else>no schema – free JSON</span>
-            </div>
-          </div>
-          <button class="btn-ghost-sm flex items-center gap-1" @click="useRaw=!useRaw">
-            <Table2 v-if="useRaw" :size="14"/>
-            <FileJson v-else :size="14"/>
-            {{ useRaw ? 'Form Schema' : 'Raw JSON' }}
+    <!-- ═══ Toolbar ═══ -->
+    <div v-if="collection" class="card !p-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Search -->
+        <div class="relative flex-1 min-w-[200px] max-w-sm">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            v-model="searchText"
+            @keyup.enter="applySearch"
+            :placeholder="`Search in ${collection}...`"
+            class="input !pl-10 !py-2 !rounded-lg text-sm"
+          />
+          <button
+            v-if="searchText"
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/[0.06] text-slate-500 hover:text-slate-300 transition-colors"
+            @click="clearSearch"
+          >
+            <X class="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div v-if="!useRaw && Object.keys(schema).length">
-          <SchemaForm :schema="schema" v-model="formModel" :api-error="error" @validate="validateServer"/>
-        </div>
-        <div v-else>
-          <textarea v-model="editorText" rows="14" class="input font-mono text-sm"></textarea>
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Soft delete toggles -->
+        <div class="hidden md:flex items-center gap-3 text-xs border-l border-white/[0.07] pl-3">
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-slate-300 transition-colors">
+            <input type="checkbox" v-model="withTrashed" @change="loadDocs" class="rounded" />
+            withTrashed
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-slate-300 transition-colors">
+            <input type="checkbox" v-model="onlyTrashed" @change="loadDocs" class="rounded" />
+            onlyTrashed
+          </label>
         </div>
 
-        <div class="flex justify-between items-center mt-4 text-xs">
-          <div>
-            <button class="btn-ghost-sm inline-flex items-center gap-1" @click="validateServer(getPayload())"><Check :size="14"/> Validate</button>
-            <span v-if="validationMsg" :class="validationOk ? 'text-emerald-400' : 'text-amber-300'">{{ validationMsg }}</span>
-          </div>
-          <div class="flex gap-2">
-            <button class="btn-ghost-sm" @click="closeModal">Cancel</button>
-            <button class="btn-sm flex items-center gap-1" @click="saveDoc"><Save :size="14"/> Save</button>
-          </div>
+        <!-- Filter toggle -->
+        <button
+          class="btn-ghost-sm flex items-center gap-1.5"
+          :class="{ '!bg-indigo-500/10 !border-indigo-500/30 !text-indigo-300': showFilters }"
+          @click="showFilters = !showFilters"
+        >
+          <Filter class="w-3.5 h-3.5" />
+          <span class="hidden sm:inline">Filters</span>
+        </button>
+
+        <!-- Column toggle -->
+        <div class="relative" ref="colMenuRef">
+          <button class="btn-ghost-sm flex items-center gap-1.5" @click="colMenuOpen = !colMenuOpen">
+            <Columns3 class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">Columns</span>
+          </button>
+          <Transition name="dropdown">
+            <div v-if="colMenuOpen" class="col-dropdown">
+              <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold px-3 py-2">
+                Toggle Columns ({{ visibleColCount }}/{{ allColumns.length }})
+              </div>
+              <div class="max-h-60 overflow-y-auto">
+                <label
+                  v-for="col in allColumns"
+                  :key="col.field"
+                  class="col-dropdown-item"
+                >
+                  <input type="checkbox" v-model="col.visible" class="rounded" />
+                  <span class="truncate">{{ col.label }}</span>
+                  <span class="text-[10px] text-slate-600 font-mono ml-auto flex-shrink-0">{{ shortType(col.type) }}</span>
+                </label>
+              </div>
+              <div class="border-t border-white/[0.06] px-3 py-2 flex gap-2">
+                <button class="text-[11px] text-indigo-400 hover:text-indigo-300" @click="showAllCols">Show all</button>
+                <button class="text-[11px] text-slate-500 hover:text-slate-400" @click="hideAllCols">Hide all</button>
+              </div>
+            </div>
+          </Transition>
         </div>
-        <p v-if="error" class="text-red-400 text-sm mt-2 bg-red-950/20 p-2 rounded-lg">{{ error }}</p>
+
+        <!-- Export -->
+        <div class="relative" ref="exportMenuRef">
+          <button class="btn-ghost-sm flex items-center gap-1.5" @click="exportMenuOpen = !exportMenuOpen">
+            <Download class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">Export</span>
+          </button>
+          <Transition name="dropdown">
+            <div v-if="exportMenuOpen" class="col-dropdown !w-44">
+              <button class="col-dropdown-item w-full" @click="exportJson">
+                <FileJson class="w-4 h-4 text-blue-400" />
+                <span>Export JSON</span>
+              </button>
+              <button class="col-dropdown-item w-full" @click="exportCsv">
+                <FileSpreadsheet class="w-4 h-4 text-emerald-400" />
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Refresh -->
+        <button class="btn-ghost-sm !p-2" @click="loadDocs" title="Refresh data">
+          <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
+        </button>
       </div>
     </div>
+
+    <!-- ═══ Status Chips ═══ -->
+    <div v-if="collection" class="flex flex-wrap items-center gap-2">
+      <span class="badge badge-info">
+        <Hash class="w-3 h-3 mr-1" />
+        {{ total }} records
+      </span>
+      <span v-if="searchText" class="badge badge-warning">
+        <Search class="w-3 h-3 mr-1" />
+        Filtered: "{{ searchText }}"
+        <button @click="clearSearch" class="ml-1 hover:text-white"><X class="w-3 h-3 inline" /></button>
+      </span>
+      <span v-if="activeFilterCount" class="badge">
+        <Filter class="w-3 h-3 mr-1" />
+        {{ activeFilterCount }} filter{{ activeFilterCount > 1 ? 's' : '' }}
+        <button @click="clearAllFilters" class="ml-1 hover:text-white"><X class="w-3 h-3 inline" /></button>
+      </span>
+      <span v-if="relationFields.length" class="badge badge-violet">
+        <Link class="w-3 h-3 mr-1" />
+        {{ relationFields.length }} relation{{ relationFields.length > 1 ? 's' : '' }}
+      </span>
+    </div>
+
+    <!-- ═══ Data Table ═══ -->
+    <div v-if="collection" class="card !p-0 overflow-hidden">
+      <DataTable
+        :columns="visibleColumns"
+        :data="docs"
+        :total="total"
+        :loading="loading"
+        :selectable="true"
+        :expandable="true"
+        :show-filter-row="showFilters"
+        :sort-field="sortField"
+        :sort-dir="sortDir"
+        :page-size="pageSize"
+        :current-page="currentPage"
+        :offset="(currentPage - 1) * pageSize"
+        :relation-cache="relationCache"
+        empty-title="No records found"
+        :empty-subtitle="searchText ? 'Try a different search term or clear filters' : 'Create your first record in this collection'"
+        @sort="onSort"
+        @apply-filters="onApplyFilters"
+        @clear-filters="onClearFilters"
+        @edit="openEdit"
+        @delete="confirmDelete"
+        @cell-edit="onCellEdit"
+        @go-to-page="goToPage"
+        @update:page-size="onPageSizeChange"
+        @select="onSelect"
+        @select-all="onSelectAll"
+      >
+        <template #bulk-actions="{ ids, clear }">
+          <button class="btn-sm !bg-red-600/90 hover:!bg-red-500 !text-white flex items-center gap-1.5" @click="bulkDelete(ids, clear)">
+            <Trash2 class="w-3.5 h-3.5" />
+            Delete ({{ ids.length }})
+          </button>
+        </template>
+      </DataTable>
+    </div>
+
+    <!-- ═══ Empty State (no collection selected) ═══ -->
+    <div v-if="!collection" class="empty-state py-24">
+      <div class="w-20 h-20 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 grid place-items-center mb-5 mx-auto">
+        <Table2 class="w-9 h-9 text-indigo-400" />
+      </div>
+      <div class="font-semibold text-slate-300 text-lg mb-1">Select a collection</div>
+      <div class="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+        Choose a database and collection from the selectors above to browse and manage your documents
+      </div>
+      <a href="/app/collections" class="btn-ghost inline-flex items-center gap-2">
+        <FolderOpen class="w-4 h-4" />
+        Go to Collections
+      </a>
+    </div>
+
+    <!-- ═══ Document Form Modal ═══ -->
+    <DocumentFormModal
+      :visible="showModal"
+      :document="editingDoc"
+      :schema="schema"
+      :db="db"
+      :collection="collection"
+      @close="showModal = false"
+      @saved="onSaved"
+    />
+
+    <!-- ═══ Delete Confirmation Modal ═══ -->
+    <Teleport to="body">
+      <div v-if="deleteTarget" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape="deleteTarget = null">
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="deleteTarget = null"></div>
+        <div class="relative card w-full max-w-sm animate-scale-in">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 grid place-items-center flex-shrink-0">
+              <AlertTriangle class="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-sm">Delete Document</h3>
+              <p class="text-xs text-slate-400 mt-1">
+                This will permanently delete
+                <span class="font-mono text-slate-300">{{ deleteTarget._id }}</span>.
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button class="btn-ghost-sm" @click="deleteTarget = null">Cancel</button>
+            <button class="btn-sm !bg-red-600 hover:!bg-red-500" @click="doDelete" :disabled="deleting">
+              <Loader2 v-if="deleting" class="w-3.5 h-3.5 animate-spin" />
+              <Trash2 v-else class="w-3.5 h-3.5" />
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import axios from 'axios'
-import SchemaForm from '@/Components/SchemaForm.vue'
+import DataTable from '@/Components/DataTable.vue'
+import DocumentFormModal from '@/Components/DocumentFormModal.vue'
+import { useToast } from '@/composables/useToast'
 import {
-  Database,
-  FolderOpen,
-  FileText,
-  Search,
-  RefreshCw,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  ArrowUpDown,
-  Pencil,
-  Trash2,
-  X,
-  Table,
-  FileJson,
-  Filter,
-  Check,
-  Save,
-  Table2,
-  ToggleLeft,
-  ToggleRight,
-  Columns3,
-  Link,
+  Database, FolderOpen, Search, Plus, ArrowLeft, RefreshCw, Filter,
+  Columns3, Download, FileJson, FileSpreadsheet, Hash, Link,
+  Trash2, X, AlertTriangle, Loader2, Table2,
 } from 'lucide-vue-next'
-const api = axios.create({ baseURL: '/api' })
 
+const api = axios.create({ baseURL: '/api' })
+const toast = useToast()
+
+// ── State ──
 const databases = ref([])
 const collections = ref([])
 const db = ref('')
 const collection = ref('')
 const docs = ref([])
 const total = ref(0)
-const filterText = ref('{}')
-const limit = ref(25)
-const skip = ref(0)
+const loading = ref(false)
+const schema = ref({})
+const relationCache = ref({})
+
+// Sorting
+const sortField = ref('_id')
+const sortDir = ref(-1)
+
+// Pagination
+const pageSize = ref(25)
+const currentPage = ref(1)
+
+// Filters
+const showFilters = ref(false)
+const columnFilters = ref({})
+const searchText = ref('')
 const withTrashed = ref(false)
 const onlyTrashed = ref(false)
 
-const showInsert = ref(false)
-const editing = ref(null)
-const editorText = ref('{\n  "name": "",\n  "email": ""\n}')
-const error = ref('')
+// UI
+const showModal = ref(false)
+const editingDoc = ref(null)
+const deleteTarget = ref(null)
+const deleting = ref(false)
+const colMenuOpen = ref(false)
+const exportMenuOpen = ref(false)
+const colMenuRef = ref(null)
+const exportMenuRef = ref(null)
 
-// schema-aware
-const schema = ref({})
-const formModel = ref({})
-const useRaw = ref(false)
-const validationMsg = ref('')
-const validationOk = ref(false)
-
-// table mode
-const tableMode = ref(true)
-const sortField = ref('_id')
-const sortDir = ref(-1)
-const columnFilters = ref({})
-const autoPopulate = ref(true)
-const relationCache = ref({}) // { "auth.users": {id:display,...} }
-
-const columns = computed(()=>{
-  if(!Object.keys(schema.value).length){
-    // fallback: infer from first doc
+// ── Computed ──
+const allColumns = computed(() => {
+  if (!Object.keys(schema.value).length) {
     const first = docs.value[0] || {}
-    return Object.keys(first).filter(k=>k!=='_id').slice(0,6).map(f=>({
-      field:f, label:f, type: typeof first[f], sortable:true, filterable:true
+    return Object.keys(first).filter(k => k !== '_id').slice(0, 8).map(f => ({
+      field: f, label: f, type: typeof first[f],
+      sortable: true, filterable: true, visible: ref(true),
     }))
   }
-  return Object.entries(schema.value)
-    .filter(([f,def])=> !def.hidden)
-    .map(([field,def])=>({
-      field,
-      label: def.label || field,
-      type: def.type || 'string',
-      sortable: !!def.sortable,
-      filterable: !!def.filterable,
-      badge: def.ui?.badge || false,
-      colorMap: def.ui?.color || null,
-      relation: def.relation || (def.type==='relation' ? def.relation : null),
-      readonly: !!def.readonly,
-    }))
+  return Object.entries(schema.value).map(([field, def]) => ({
+    field,
+    label: def.label || field,
+    type: def.type || 'string',
+    sortable: !!def.sortable,
+    filterable: !!def.filterable,
+    badge: def.ui?.badge || false,
+    colorMap: def.ui?.color || null,
+    relation: def.relation || (def.type === 'relation' ? def.relation : null),
+    readonly: !!def.readonly,
+    enumOptions: def.options || [],
+    visible: ref(!def.hidden),
+  }))
 })
 
-const relationFields = computed(()=> columns.value.filter(c=>c.relation))
-const hasFilterable = computed(()=> columns.value.some(c=>c.filterable))
+const visibleColumns = computed(() =>
+  allColumns.value.filter(c => c.visible.value).map(c => ({ ...c, hidden: false }))
+)
 
-function toggleSort(field){
-  if(sortField.value===field){ sortDir.value = -sortDir.value }
-  else { sortField.value=field; sortDir.value=1 }
-  loadDocs()
-}
-function applyColumnFilter(){
-  // build $and filter from columnFilters
-  const and = []
-  for(const [k,v] of Object.entries(columnFilters.value)){
-    if(!v) continue
-    // try smart: number? regex?
-    if(!isNaN(v) && v.trim()!==''){ and.push({[k]: Number(v)}) }
-    else { and.push({[k]: { $regex: v }}) }
-  }
-  let base = {}
-  try{ base = JSON.parse(filterText.value||'{}') }catch{}
-  if(and.length){
-    filterText.value = JSON.stringify( and.length===1 ? and[0] : { $and: and } )
-  } else {
-    filterText.value = JSON.stringify(base && Object.keys(base).length && !and.length ? base : {})
-  }
-  skip.value=0
-  loadDocs()
-}
-function clearColumnFilter(){ columnFilters.value={}; filterText.value='{}'; loadDocs() }
+const visibleColCount = computed(() => allColumns.value.filter(c => c.visible.value).length)
+const relationFields = computed(() => visibleColumns.value.filter(c => c.relation))
+const activeFilterCount = computed(() => Object.values(columnFilters.value).filter(Boolean).length)
 
-onMounted(async()=>{
-  const r = await api.get('/databases'); databases.value = r.data.data
-  // auto try load ?db & ?col from URL
+// ── Lifecycle ──
+onMounted(async () => {
+  const r = await api.get('/databases')
+  databases.value = r.data.data
+  // Auto-restore from URL params
   const url = new URL(window.location.href)
-  const qdb = url.searchParams.get('db'); const qcol = url.searchParams.get('col')
-  if(qdb){ db.value=qdb; await loadCols(); if(qcol){ collection.value=qcol; await onCollectionChange() } }
+  const qdb = url.searchParams.get('db')
+  const qcol = url.searchParams.get('col')
+  if (qdb) {
+    db.value = qdb
+    await loadCollections()
+    if (qcol) {
+      collection.value = qcol
+      await onCollectionChange()
+    }
+  }
 })
 
-async function loadCols(){
-  if(!db.value) return
-  const r = await api.get(`/${db.value}/collections`)
-  collections.value = r.data.data
+// Close dropdown menus on outside click
+function handleClickOutside(e) {
+  if (colMenuRef.value && !colMenuRef.value.contains(e.target)) colMenuOpen.value = false
+  if (exportMenuRef.value && !exportMenuRef.value.contains(e.target)) exportMenuOpen.value = false
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+
+// ── Data Loading ──
+async function loadCollections() {
+  if (!db.value) return
+  try {
+    const r = await api.get(`/${db.value}/collections`)
+    collections.value = r.data.data
+  } catch { collections.value = [] }
   collection.value = ''
   docs.value = []
   schema.value = {}
 }
-async function onCollectionChange(){
+
+async function onCollectionChange() {
   await loadSchema()
   columnFilters.value = {}
-  sortField.value = '_id'; sortDir.value = -1
-  skip.value=0
+  searchText.value = ''
+  sortField.value = '_id'
+  sortDir.value = -1
+  currentPage.value = 1
   await loadDocs()
 }
-async function loadSchema(){
-  if(!db.value || !collection.value){ schema.value={}; return }
-  try{
-    // enhanced schema IS native now – BangronDB core patched
+
+async function loadSchema() {
+  if (!db.value || !collection.value) { schema.value = {}; return }
+  try {
     const r = await api.get(`/${db.value}/${collection.value}/schema`)
-    let s = r.data.schema || {}
-    schema.value = s
-    useRaw.value = Object.keys(s).length===0
-  }catch(e){ schema.value={}; useRaw.value=true }
+    schema.value = r.data.schema || {}
+  } catch { schema.value = {} }
 }
 
-async function loadDocs(){
-  if(!db.value || !collection.value) return
-  const sort = sortField.value ? { [sortField.value]: sortDir.value } : {}
-  let filter = {}
-  try{ filter = JSON.parse(filterText.value || '{}') }catch{}
-  const params = {
-    filter: JSON.stringify(filter),
-    sort: JSON.stringify(sort),
-    limit: limit.value,
-    skip: skip.value,
-    with_trashed: withTrashed.value ? 1 : 0,
-    only_trashed: onlyTrashed.value ? 1 : 0
-  }
-  const r = await api.get(`/${db.value}/${collection.value}/documents`, { params })
-  docs.value = r.data.data
-  total.value = r.data.total
-  if(autoPopulate.value && relationFields.value.length){
-    await populateRelations()
+async function loadDocs() {
+  if (!db.value || !collection.value) return
+  loading.value = true
+  try {
+    const sort = sortField.value ? { [sortField.value]: sortDir.value } : {}
+    let filter = buildFilter()
+    const params = {
+      filter: JSON.stringify(filter),
+      sort: JSON.stringify(sort),
+      limit: pageSize.value,
+      skip: (currentPage.value - 1) * pageSize.value,
+      with_trashed: withTrashed.value ? 1 : 0,
+      only_trashed: onlyTrashed.value ? 1 : 0,
+    }
+    const r = await api.get(`/${db.value}/${collection.value}/documents`, { params })
+    docs.value = r.data.data
+    total.value = r.data.total
+    // Populate relations
+    if (relationFields.value.length) {
+      await populateRelations()
+    }
+  } catch (e) {
+    toast.error('Gagal memuat dokumen: ' + (e.response?.data?.message || e.message))
+  } finally {
+    loading.value = false
   }
 }
 
-async function populateRelations(){
-  for(const col of relationFields.value){
+function buildFilter() {
+  const parts = []
+  // Column filters
+  for (const [k, v] of Object.entries(columnFilters.value)) {
+    if (!v) continue
+    if (!isNaN(v) && v.trim() !== '') {
+      parts.push({ [k]: Number(v) })
+    } else {
+      parts.push({ [k]: { $regex: v } })
+    }
+  }
+  // Search text (search across all string fields)
+  if (searchText.value) {
+    const searchParts = []
+    for (const col of visibleColumns.value) {
+      if (['string', 'text', 'email', 'url', 'slug'].includes(col.type)) {
+        searchParts.push({ [col.field]: { $regex: searchText.value } })
+      }
+    }
+    if (searchParts.length === 1) {
+      parts.push(searchParts[0])
+    } else if (searchParts.length > 1) {
+      parts.push({ $or: searchParts })
+    }
+  }
+  if (parts.length === 0) return {}
+  if (parts.length === 1) return parts[0]
+  return { $and: parts }
+}
+
+async function populateRelations() {
+  for (const col of relationFields.value) {
     const rel = col.relation
-    if(!rel?.db || !rel?.collection) continue
-    const ids = [...new Set(docs.value.map(d=>d[col.field]).filter(Boolean))]
-    if(!ids.length) continue
+    if (!rel?.db || !rel?.collection) continue
+    const ids = [...new Set(docs.value.map(d => d[col.field]).filter(Boolean))]
+    if (!ids.length) continue
     const cacheKey = `${rel.db}.${rel.collection}`
-    if(!relationCache.value[cacheKey]) relationCache.value[cacheKey] = {}
+    if (!relationCache.value[cacheKey]) relationCache.value[cacheKey] = {}
     const missing = ids.filter(id => !(id in relationCache.value[cacheKey]))
-    if(missing.length){
-      try{
-        // query $in
+    if (missing.length) {
+      try {
         const res = await api.post(`/${rel.db}/${rel.collection}/query`, {
           filter: { [rel.field || '_id']: { $in: missing } },
-          limit: 200
+          limit: 200,
         })
-        for(const item of res.data.data || []){
+        for (const item of (res.data.data || [])) {
           const id = item[rel.field || '_id']
           const label = item[rel.display] || item.name || item.title || id
           relationCache.value[cacheKey][id] = label
         }
-      }catch(e){}
+      } catch {}
     }
   }
 }
-function getRelationDisplay(col, id){
-  if(!id || !col.relation) return null
-  const cacheKey = `${col.relation.db}.${col.relation.collection}`
-  return relationCache.value[cacheKey]?.[id] || null
-}
 
-function pretty(o){ return JSON.stringify(o,null,2) }
-function prettyPopulated(doc){
-  const out = {...doc}
-  for(const col of relationFields.value){
-    const disp = getRelationDisplay(col, doc[col.field])
-    if(disp) out[col.field + '__display'] = disp
-  }
-  return JSON.stringify(out,null,2)
-}
-function formatCell(v){
-  if(v===null || v===undefined) return '–'
-  if(typeof v==='object') return Array.isArray(v) ? `[${v.length}]` : '{…}'
-  if(typeof v==='boolean') return v ? '✓' : '✗'
-  const s = String(v)
-  return s.length > 60 ? s.slice(0,57)+'…' : s
-}
-function badgeClass(col, value){
-  const color = col.colorMap?.[value] || 'slate'
-  const map = {
-    gray:'bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full text-[11px]',
-    blue:'bg-blue-900 text-blue-200 px-2 py-0.5 rounded-full text-[11px]',
-    green:'bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded-full text-[11px]',
-    amber:'bg-amber-900 text-amber-200 px-2 py-0.5 rounded-full text-[11px]',
-    red:'bg-red-900 text-red-200 px-2 py-0.5 rounded-full text-[11px]',
-    violet:'bg-violet-900 text-violet-200 px-2 py-0.5 rounded-full text-[11px]',
-    slate:'bg-slate-800 text-slate-200 px-2 py-0.5 rounded-full text-[11px]',
-  }
-  return map[color] || map.slate
-}
-
-function openInsert(){
-  editing.value=null
-  formModel.value={}
-  // apply defaults from schema
-  for(const [f,def] of Object.entries(schema.value)){
-    if(def.default !== undefined) formModel.value[f]=def.default
-  }
-  editorText.value='{}'
-  error.value=''; validationMsg.value=''; showInsert.value=true
-}
-function edit(doc){
-  editing.value = doc
-  formModel.value = {...doc}
-  delete formModel.value._id
-  editorText.value = JSON.stringify(doc,null,2)
-  error.value=''; validationMsg.value=''; showInsert.value=true
-}
-function closeModal(){ showInsert.value=false; editing.value=null; error.value=''; validationMsg.value='' }
-
-function getPayload(){
-  if(useRaw.value || !Object.keys(schema.value).length){
-    try { return JSON.parse(editorText.value) } catch(e){ throw new Error('JSON tidak valid: '+e.message) }
-  }
-  return {...formModel.value}
-}
-async function validateServer(payload=null){
-  validationMsg.value='validating…'
-  try{
-    const body = payload || getPayload()
-    const r = await api.post(`/${db.value}/${collection.value}/validate`, body)
-    validationOk.value = r.data.valid
-    validationMsg.value = r.data.valid ? 'Dokumen valid sesuai schema' : (r.data.error||'invalid')
-    return r.data.valid
-  }catch(e){
-    validationOk.value=false
-    validationMsg.value='Error: '+(e.response?.data?.error||e.message)
-    return false
-  }
-}
-async function saveDoc(){
-  error.value=''
-  try{
-    const payload = getPayload()
-    await validateServer(payload)
-    if(editing.value && editing.value._id){
-      payload._id = editing.value._id
-      await api.post(`/${db.value}/${collection.value}/save`, payload)
-    } else {
-      await api.post(`/${db.value}/${collection.value}/documents`, payload)
-    }
-    closeModal(); loadDocs()
-  }catch(e){ error.value = e.response?.data?.message || e.message }
-}
-async function removeDoc(doc){
-  if(!confirm('Yakin ingin menghapus '+doc._id+' ?')) return
-  await api.delete(`/${db.value}/${collection.value}/documents`, { params:{ filter: JSON.stringify({_id:doc._id}) } })
+// ── Sort ──
+function onSort({ field, dir }) {
+  sortField.value = field
+  sortDir.value = dir
+  currentPage.value = 1
   loadDocs()
 }
-function nextPage(){ skip.value += limit.value; loadDocs() }
-function prevPage(){ skip.value = Math.max(0, skip.value-limit.value); loadDocs() }
 
-watch(formModel, (v)=>{
-  if(!useRaw.value) editorText.value = JSON.stringify(v, null, 2)
-}, {deep:true})
+// ── Filters ──
+function onApplyFilters(filters) {
+  columnFilters.value = { ...filters }
+  currentPage.value = 1
+  loadDocs()
+}
+
+function onClearFilters() {
+  columnFilters.value = {}
+  loadDocs()
+}
+
+function clearAllFilters() {
+  columnFilters.value = {}
+  searchText.value = ''
+  loadDocs()
+}
+
+function applySearch() {
+  currentPage.value = 1
+  loadDocs()
+}
+
+function clearSearch() {
+  searchText.value = ''
+  currentPage.value = 1
+  loadDocs()
+}
+
+// ── Pagination ──
+function goToPage(p) {
+  const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value))
+  currentPage.value = Math.max(1, Math.min(p, maxPage))
+  loadDocs()
+}
+
+function onPageSizeChange(size) {
+  pageSize.value = size
+  currentPage.value = 1
+  loadDocs()
+}
+
+// ── Selection ──
+function onSelect(ids) {}
+function onSelectAll(ids) {}
+
+// ── Column Management ──
+function showAllCols() { allColumns.value.forEach(c => c.visible.value = true) }
+function hideAllCols() { allColumns.value.forEach(c => c.visible.value = false) }
+
+// ── CRUD ──
+function openCreate() {
+  editingDoc.value = null
+  showModal.value = true
+}
+
+function openEdit(doc) {
+  editingDoc.value = { ...doc }
+  showModal.value = true
+}
+
+function confirmDelete(doc) {
+  deleteTarget.value = doc
+}
+
+async function doDelete() {
+  if (!deleteTarget.value) return
+  deleting.value = true
+  try {
+    await api.delete(`/${db.value}/${collection.value}/documents`, {
+      params: { filter: JSON.stringify({ _id: deleteTarget.value._id }) },
+    })
+    toast.success('Dokumen berhasil dihapus')
+    deleteTarget.value = null
+    loadDocs()
+  } catch (e) {
+    toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message))
+  } finally {
+    deleting.value = false
+  }
+}
+
+async function bulkDelete(ids, clear) {
+  if (!confirm(`Hapus ${ids.length} dokumen?`)) return
+  try {
+    await api.delete(`/${db.value}/${collection.value}/documents`, {
+      params: { filter: JSON.stringify({ _id: { $in: ids } }) },
+    })
+    toast.success(`${ids.length} dokumen berhasil dihapus`)
+    clear()
+    loadDocs()
+  } catch (e) {
+    toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message))
+  }
+}
+
+// ── Inline Cell Edit ──
+async function onCellEdit({ id, field, value, row }) {
+  try {
+    await api.post(`/${db.value}/${collection.value}/save`, { _id: id, [field]: value })
+    toast.success('Field updated')
+    loadDocs()
+  } catch (e) {
+    toast.error('Update gagal: ' + (e.response?.data?.message || e.message))
+  }
+}
+
+function onSaved() {
+  toast.success(editingDoc.value ? 'Dokumen berhasil diperbarui' : 'Dokumen berhasil dibuat')
+  loadDocs()
+}
+
+// ── Export ──
+function exportJson() {
+  exportMenuOpen.value = false
+  const blob = new Blob([JSON.stringify(docs.value, null, 2)], { type: 'application/json' })
+  downloadBlob(blob, `${collection}_export.json`)
+  toast.info(`Exported ${docs.value.length} records as JSON`)
+}
+
+function exportCsv() {
+  exportMenuOpen.value = false
+  if (!docs.value.length) { toast.warning('No data to export'); return }
+  const cols = visibleColumns.value.map(c => c.field)
+  const header = ['_id', ...cols].join(',')
+  const rows = docs.value.map(doc =>
+    ['_id', ...cols].map(f => {
+      let v = doc[f]
+      if (v === null || v === undefined) return ''
+      v = String(v)
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+        v = '"' + v.replace(/"/g, '""') + '"'
+      }
+      return v
+    }).join(',')
+  )
+  const csv = [header, ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  downloadBlob(blob, `${collection}_export.csv`)
+  toast.info(`Exported ${docs.value.length} records as CSV`)
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── Helpers ──
+function shortType(t) {
+  const map = {
+    string: 'str', text: 'txt', email: 'mail', url: 'url', slug: 'slug',
+    int: 'int', float: 'flt', number: 'num', decimal: 'dec',
+    bool: 'bool', array: 'arr', object: 'obj', json: 'json',
+    enum: 'enum', tags: 'tags', date: 'date', datetime: 'dt',
+    time: 'time', relation: 'rel',
+  }
+  return map[t] || (t || '').slice(0, 4)
+}
 </script>
+
+<style scoped>
+/* Dropdown animation */
+.dropdown-enter-active { transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+.dropdown-leave-active { transition: all 0.1s ease-in; }
+.dropdown-enter-from { opacity: 0; transform: translateY(-4px) scale(0.95); }
+.dropdown-leave-to { opacity: 0; transform: translateY(-4px) scale(0.95); }
+</style>

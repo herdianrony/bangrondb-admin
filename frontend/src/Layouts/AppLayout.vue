@@ -161,12 +161,16 @@
         </a>
       </template>
     </nav>
+
+    <!-- Global Toast Notifications -->
+    <ToastContainer />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import ToastContainer from '@/Components/ToastContainer.vue'
 import {
   LayoutDashboard, Database, FolderOpen, FileText, Search, Puzzle, Link,
   Users, Shield, KeyRound, Lock, Trash2, Anchor, Zap, Heart, Settings,
@@ -221,7 +225,7 @@ const descMap = {
   Acl: 'Configure access control, field-level rules, and audit logs',
   Databases: 'Create, rename, and manage your databases',
   Collections: 'Manage collections within a database',
-  Documents: 'Browse, create, and edit documents',
+  Documents: 'Spreadsheet-like data browser with inline editing, filters, and export',
   Query: 'Build and run queries with Mongo-style operators',
   Encryption: 'Configure AES-256-GCM encryption and searchable fields',
   Schema: 'Design collection schemas with visual builder',
