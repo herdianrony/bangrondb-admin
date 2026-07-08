@@ -68,7 +68,7 @@ class InertiaController
 
     private function needsSetup(string $dbPath): bool
     {
-        if (!is_dir($dbPath)) return true;
+        if (!$dbPath || !is_dir($dbPath)) return true;
         try {
             $client = new \BangronDB\Client($dbPath);
             if (!$client->dbExists('auth') || !$client->collectionExists('auth', 'users')) return true;

@@ -25,33 +25,29 @@ if (file_exists(__DIR__ . '/../.env')) {
 
 // ─── Paths ────────────────────────────────────────────────────────────
 
-// Resolve DB_PATH from .env or use default backend/storage/data
-// NEVER use relative paths — always resolve from __DIR__ to avoid CWD issues
-$defaultDbPath = realpath(__DIR__ . '/../storage/data');
-$envDbPath     = $_ENV['DB_PATH'] ?? null;
+// 1) Determine raw path string (realpath LATER — after ensuring dir exists)
+$rawDbPath = $_ENV['DB_PATH'] ?? null;
 
-if ($envDbPath !== null) {
-    // If env path is relative, resolve it relative to backend/ directory
-    if (!str_starts_with($envDbPath, '/') && !str_starts_with($envDbPath, '\\')) {
-        $dbPath = realpath(__DIR__ . '/../' . $envDbPath);
-    } else {
-        $dbPath = realpath($envDbPath);
-    }
-    // Fallback to default if env path doesn't resolve
-    if (!$dbPath) {
-        $dbPath = $defaultDbPath;
+if ($rawDbPath !== null) {
+    // If env path is relative, resolve relative to backend/ (NOT CWD)
+    if (!str_starts_with($rawDbPath, '/') && !str_starts_with($rawDbPath, '\\')) {
+        $rawDbPath = __DIR__ . '/../' . $rawDbPath;
     }
 } else {
-    $dbPath = $defaultDbPath;
+    $rawDbPath = __DIR__ . '/../storage/data';
 }
 
-// Define global constant so all controllers use the SAME path
+// 2) Ensure the directory actually EXISTS before calling realpath()
+if (!is_dir($rawDbPath)) {
+    @mkdir($rawDbPath, 0777, true);
+}
+
+// 3) Now resolve to real path (guaranteed to succeed if mkdir worked)
+$dbPath = realpath($rawDbPath) ?: $rawDbPath;
+
+// 4) Define global constant — always a valid string path
 if (!defined('BANGRON_DB_PATH')) {
-    define('BANGRON_DB_PATH', $dbPath);
-}
-
-if (!is_dir($dbPath)) {
-    @mkdir($dbPath, 0777, true);
+    define('BANGRON_DB_PATH', (string) $dbPath);
 }
 
 // ─── Monolog ──────────────────────────────────────────────────────────

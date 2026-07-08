@@ -10,7 +10,12 @@ class SetupController
 {
     private static function dbPath(): string
     {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        $p = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        // Ensure directory exists — Client constructor will throw if it doesn't
+        if (!is_dir($p)) {
+            @mkdir($p, 0777, true);
+        }
+        return realpath($p) ?: (string) $p;
     }
 
     /**
@@ -127,9 +132,8 @@ class SetupController
                 if (!empty($cfg['schema'])) {
                     try {
                         $col = $client->selectCollection($appDb, $cName);
-                        if (method_exists($col, 'saveSchema')) {
-                            $col->saveSchema($cfg['schema']);
-                        }
+                        $col->setSchema($cfg['schema']);
+                        $col->saveConfiguration();
                     } catch (Throwable $e) {
                         // schema save non-critical
                     }
