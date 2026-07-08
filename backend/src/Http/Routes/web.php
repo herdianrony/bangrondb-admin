@@ -7,11 +7,8 @@ declare(strict_types=1);
 
 use App\Controllers\InertiaController;
 
-// Dashboard (also serves setup wizard if not initialized)
+// Dashboard (shows setup wizard via Inertia if not initialized)
 Flight::route('GET /', [InertiaController::class, 'index']);
-
-// Setup wizard (direct access, redirects to / if already set up)
-Flight::route('GET /setup', [InertiaController::class, 'index']);
 
 // SPA catch-all for Inertia pages
 Flight::route('GET /app/@path', [InertiaController::class, 'page']);

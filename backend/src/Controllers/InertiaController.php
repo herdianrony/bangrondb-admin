@@ -3,29 +3,22 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Inertia\SetupWizard;
-
 class InertiaController
 {
-    private string $dbPath;
-
-    public function __construct()
-    {
-        $this->dbPath = $_ENV['DB_PATH'] ?? dirname(__DIR__, 3) . '/storage/data';
-    }
-
     /**
      * GET /
      *
-     * If setup is needed → render standalone setup wizard.
-     * Otherwise → render normal Inertia dashboard.
+     * Renders Dashboard via Inertia (or Setup if not initialized).
      */
     public function index(): void
     {
-        // Check if setup is needed
-        $wizard = new SetupWizard($this->dbPath);
-        if ($wizard->isSetupNeeded()) {
-            $wizard->render();
+        $dbPath = $_ENV['DB_PATH'] ?? dirname(__DIR__, 3) . '/storage/data';
+
+        // Check setup status — redirect to /app/setup if needed
+        if ($this->needsSetup($dbPath)) {
+            \Flight::inertia()->render('Setup/Index', [
+                'stats' => ['databases' => 0, 'collections' => 0, 'documents' => 0, 'total_size_mb' => 0, 'php_version' => PHP_VERSION, 'health' => ['status' => 'ok']],
+            ]);
             return;
         }
 
@@ -36,21 +29,13 @@ class InertiaController
 
     /**
      * GET /app/@path
-     *
-     * If setup is needed → redirect to /.
-     * Otherwise → render Inertia page.
      */
     public function page(string $path): void
     {
-        // Guard: redirect to setup if not initialized
-        $wizard = new SetupWizard($this->dbPath);
-        if ($wizard->isSetupNeeded()) {
-            header('Location: /');
-            exit;
-        }
+        $dbPath = $_ENV['DB_PATH'] ?? dirname(__DIR__, 3) . '/storage/data';
 
-        // Explicit /setup route → redirect to / (wizard handles it)
-        if ($path === 'setup') {
+        // Guard: redirect to setup if not initialized
+        if ($this->needsSetup($dbPath)) {
             header('Location: /');
             exit;
         }
@@ -66,6 +51,7 @@ class InertiaController
             'users'        => 'Users/Index',
             'roles'        => 'Roles/Index',
             'tokens'       => 'Tokens/Index',
+            'setup'        => 'Setup/Index',
             'soft-deletes' => 'SoftDeletes/Index',
             'hooks'        => 'Hooks/Index',
             'relations'    => 'Relations/Index',
@@ -78,5 +64,18 @@ class InertiaController
             'stats' => \Flight::bangron()->dashboardStats(),
             'path'  => $path
         ]);
+    }
+
+    private function needsSetup(string $dbPath): bool
+    {
+        if (!is_dir($dbPath)) return true;
+        try {
+            $client = new \BangronDB\Client($dbPath);
+            if (!$client->dbExists('auth') || !$client->collectionExists('auth', 'users')) return true;
+            $u = $client->selectCollection('auth', 'users');
+            return $u->count() === 0;
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 }
