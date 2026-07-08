@@ -1,0 +1,38 @@
+# Dependencies
+backend/vendor/
+frontend/node_modules/
+
+# Environment
+backend/.env
+.env.local
+.env.*.local
+
+# Data & Logs (tracked via .gitkeep)
+backend/storage/data/*
+backend/storage/logs/*
+!backend/storage/data/.gitkeep
+!backend/storage/logs/.gitkeep
+
+# Build output
+frontend/dist/
+/public/build/
+backend/public/build/
+
+# Cache
+backend/var/cache/*
+backend/var/logs/*
+!backend/var/cache/.gitkeep
+!backend/var/logs/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# Misc
+*.log
+*.tmp
+*.sqlite
+*.db
