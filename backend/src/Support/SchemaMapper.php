@@ -124,6 +124,7 @@ class SchemaMapper
                 'badge'      => $def['ui']['badge'] ?? false,
                 'color'      => $def['ui']['color'] ?? null,
                 'relation'   => $def['relation'] ?? null,
+                'multiple'   => $def['multiple'] ?? false,
                 'unique'     => $def['unique'] ?? false,
                 'regex'      => $def['regex'] ?? null,
             ];

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Support\SchemaMapper;
 use Flight;
 use Throwable;
 
@@ -83,41 +84,47 @@ class SetupController
             }
             $permCol = $client->selectCollection('auth', 'permissions');
             $permCol->setIdModePrefix('perm_');
-            $permCol->setSchema($this->getPermissionSchema());
             $permCol->useSoftDeletes(true);
-            $permCol->saveConfiguration();
+            SchemaMapper::applyAll($permCol, $this->getPermissionSSOT());
 
             foreach ($this->getDefaultPermissions() as $p) {
                 try { $permCol->insert($p); } catch (Throwable $e) {}
             }
 
-            // 2. roles
+            // 2. roles (permissions = relasi ke koleksi permissions)
             if (!$client->collectionExists('auth', 'roles')) {
                 $client->createCollection('auth', 'roles');
             }
             $roleCol = $client->selectCollection('auth', 'roles');
             $roleCol->setIdModePrefix('role_');
-            $roleCol->setSchema($this->getRoleSchema());
             $roleCol->useSoftDeletes(true);
+            SchemaMapper::applyAll($roleCol, $this->getRoleSSOT());
+            // Override: permissions menyimpan array, bukan string
+            $nativeSchema = $roleCol->getSchema();
+            $nativeSchema['permissions']['type'] = 'array';
+            $roleCol->setSchema($nativeSchema);
             $roleCol->saveConfiguration();
 
             foreach ($this->getDefaultRoles() as $r) {
                 try { $roleCol->insert($r); } catch (Throwable $e) {}
             }
 
-            // 3. users (encryption + searchable)
+            // 3. users (roles = relasi ke koleksi roles, encryption + searchable)
             if (!$client->collectionExists('auth', 'users')) {
                 $client->createCollection('auth', 'users');
             }
             $userCol = $client->selectCollection('auth', 'users');
             $userCol->setIdModePrefix('usr_');
-            $userCol->setSchema($this->getUserSchema());
             $userCol->useSoftDeletes(true);
 
             if (!empty($_ENV['ENCRYPTION_KEY'])) {
                 $userCol->setEncryptionKey($_ENV['ENCRYPTION_KEY']);
-                $userCol->setSearchableFields(['email', 'username'], true);
             }
+            SchemaMapper::applyAll($userCol, $this->getUserSSOT(), $_ENV['ENCRYPTION_KEY'] ?? null);
+            // Override: roles menyimpan array, bukan string
+            $nativeSchema = $userCol->getSchema();
+            $nativeSchema['roles']['type'] = 'array';
+            $userCol->setSchema($nativeSchema);
             $userCol->saveConfiguration();
 
             // Buat superadmin
@@ -160,33 +167,61 @@ class SetupController
     // HELPER METHODS
     // ═══════════════════════════════════════════════════════════════
 
-    private function getPermissionSchema(): array
+    private function getPermissionSSOT(): array
     {
         return [
-            'name' => ['type' => 'string', 'required' => true, 'unique' => true],
-            'label' => ['type' => 'string'],
-            'description' => ['type' => 'string'],
+            'name'        => ['type' => 'string', 'required' => true, 'unique' => true, 'label' => 'Name', 'filterable' => true],
+            'label'       => ['type' => 'string', 'label' => 'Label'],
+            'description' => ['type' => 'text', 'label' => 'Description'],
         ];
     }
 
-    private function getRoleSchema(): array
+    /**
+     * SSOT schema untuk roles — permissions adalah relasi many-to-many ke koleksi permissions
+     */
+    private function getRoleSSOT(): array
     {
         return [
-            'name' => ['type' => 'string', 'required' => true, 'unique' => true],
-            'label' => ['type' => 'string'],
-            'permissions' => ['type' => 'array'],
-            'is_system' => ['type' => 'bool', 'default' => false],
+            'name'        => ['type' => 'string', 'required' => true, 'unique' => true, 'label' => 'Name', 'filterable' => true],
+            'label'       => ['type' => 'string', 'label' => 'Label'],
+            'permissions' => [
+                'type'     => 'relation',
+                'label'    => 'Permissions',
+                'multiple' => true,
+                'relation' => [
+                    'db'         => 'auth',
+                    'collection' => 'permissions',
+                    'field'      => 'name',
+                    'display'    => 'label',
+                ],
+            ],
+            'is_system' => ['type' => 'bool', 'default' => false, 'label' => 'System Role'],
         ];
     }
 
-    private function getUserSchema(): array
+    /**
+     * SSOT schema untuk users — roles adalah relasi many-to-many ke koleksi roles
+     */
+    private function getUserSSOT(): array
     {
         return [
-            'username' => ['type' => 'string', 'required' => true, 'unique' => true],
-            'email' => ['type' => 'email', 'required' => true, 'unique' => true],
-            'password_hash' => ['type' => 'string', 'required' => true],
-            'roles' => ['type' => 'array'],
-            'active' => ['type' => 'bool', 'default' => true],
+            'username'      => ['type' => 'string', 'required' => true, 'unique' => true, 'label' => 'Username', 'filterable' => true, 'searchable' => true],
+            'email'         => ['type' => 'email', 'required' => true, 'unique' => true, 'label' => 'Email', 'filterable' => true, 'searchable' => true],
+            'name'          => ['type' => 'string', 'label' => 'Full Name'],
+            'password_hash' => ['type' => 'password', 'required' => true, 'label' => 'Password', 'hidden' => true],
+            'roles'         => [
+                'type'     => 'relation',
+                'label'    => 'Roles',
+                'multiple' => true,
+                'relation' => [
+                    'db'         => 'auth',
+                    'collection' => 'roles',
+                    'field'      => 'name',
+                    'display'    => 'label',
+                ],
+            ],
+            'active'     => ['type' => 'bool', 'default' => true, 'label' => 'Active'],
+            'created_at' => ['type' => 'datetime', 'label' => 'Created At', 'readonly' => true],
         ];
     }
 
