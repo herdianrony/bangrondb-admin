@@ -3,7 +3,7 @@
     <!-- Mobile Sidebar Overlay -->
     <div v-if="mobileOpen" class="sidebar-overlay" @click="mobileOpen=false"></div>
 
-    <!-- Sidebar -->
+    <!-- ═══ Sidebar ═══ -->
     <aside :class="[
       'fixed top-0 left-0 h-screen z-50 overflow-y-auto transition-transform duration-300 ease-out',
       'w-[260px]',
@@ -13,8 +13,8 @@
     ]">
       <div class="p-4 flex flex-col h-full">
         <!-- Brand -->
-        <div class="flex items-center gap-3 px-1 mb-5 mt-1">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg shadow-indigo-500/20">
+        <div class="flex items-center gap-3 px-2 mb-6 mt-1">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
             <Box class="w-[18px] h-[18px] text-white" />
           </div>
           <div class="min-w-0">
@@ -39,8 +39,7 @@
         </div>
 
         <!-- Navigation -->
-        <nav class="space-y-1 flex-1">
-          <!-- Overview (always visible) -->
+        <nav class="space-y-0.5 flex-1">
           <a href="/"
              :class="['nav-item', isActive('/') ? 'active' : '']"
              @click="mobileOpen=false">
@@ -48,10 +47,10 @@
             <span>Overview</span>
           </a>
 
-          <div v-if="mode === 'editor'" class="pt-4">
-            <div class="nav-group-label">Content</div>
-          </div>
           <template v-if="mode === 'editor'">
+            <div class="pt-5 pb-1.5">
+              <div class="nav-group-label">Content</div>
+            </div>
             <a v-for="i in editorNav" :key="i.href" :href="i.href"
                :class="['nav-item', isActive(i.href) ? 'active' : '']"
                @click="mobileOpen=false">
@@ -61,7 +60,7 @@
           </template>
 
           <template v-else>
-            <div class="pt-4 pb-2">
+            <div class="pt-5 pb-1.5">
               <div class="nav-group-label">Data</div>
             </div>
             <a v-for="i in navData" :key="i.href" :href="i.href"
@@ -71,7 +70,7 @@
               <span>{{ i.label }}</span>
             </a>
 
-            <div class="pt-4 pb-2">
+            <div class="pt-5 pb-1.5">
               <div class="nav-group-label">Access</div>
             </div>
             <a v-for="i in navAccess" :key="i.href" :href="i.href"
@@ -81,7 +80,7 @@
               <span>{{ i.label }}</span>
             </a>
 
-            <div class="pt-4 pb-2">
+            <div class="pt-5 pb-1.5">
               <div class="nav-group-label">System</div>
             </div>
             <a v-for="i in navSystem" :key="i.href" :href="i.href"
@@ -94,16 +93,21 @@
         </nav>
 
         <!-- Sidebar Footer -->
-        <div class="pt-4 border-t border-white/[0.07] mt-4">
-          <div class="px-3 flex items-center gap-2 text-[11px] text-slate-600">
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-            <span>v2.0.0 &middot; AES-256-GCM</span>
+        <div class="pt-3 border-t border-white/[0.06] mt-2">
+          <div class="px-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-[11px] text-slate-600">
+              <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span>v2.0.0</span>
+            </div>
+            <div :class="['mode-badge', mode === 'editor' ? 'mode-badge-editor' : 'mode-badge-dev']">
+              {{ mode === 'editor' ? 'Editor' : 'Developer' }}
+            </div>
           </div>
         </div>
       </div>
     </aside>
 
-    <!-- Main Area -->
+    <!-- ═══ Main Area ═══ -->
     <div class="lg:ml-[260px] min-h-screen flex flex-col">
       <!-- Mobile Top Bar -->
       <header class="sticky top-0 z-30 lg:hidden bg-[#0f1117]/90 backdrop-blur-2xl border-b border-white/[0.07] px-4 py-3 flex items-center gap-3">
@@ -114,9 +118,8 @@
           <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center">
             <Box class="w-3.5 h-3.5 text-white" />
           </div>
-          <span class="font-semibold text-sm text-white">{{ title }}</span>
+          <span class="font-semibold text-sm text-white">{{ pageTitle }}</span>
         </div>
-        <!-- Mobile mode toggle -->
         <div class="ml-auto">
           <button @click="setMode(mode === 'editor' ? 'developer' : 'editor')"
                   class="p-1.5 rounded-lg hover:bg-white/5 text-slate-400">
@@ -125,21 +128,8 @@
         </div>
       </header>
 
-      <!-- Page Content -->
-      <main class="flex-1 p-5 md:p-8 lg:p-10 pb-24 lg:pb-10 animate-fade-in">
-        <!-- Desktop Page Header -->
-        <div class="page-header hidden lg:flex">
-          <div>
-            <h1 class="page-title">{{ title }}</h1>
-            <p class="page-desc">{{ description }}</p>
-          </div>
-          <div v-if="mode === 'developer'" class="badge-violet">
-            <Code class="w-3 h-3 inline -mt-0.5" /> Developer
-          </div>
-          <div v-else class="badge">
-            <PenTool class="w-3 h-3 inline -mt-0.5" /> Editor
-          </div>
-        </div>
+      <!-- Page Content — pages handle their own headers -->
+      <main class="flex-1 p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 animate-fade-in">
         <slot />
       </main>
     </div>
@@ -169,18 +159,14 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-import { usePage } from '@inertiajs/vue3'
-import ToastContainer from '@/Components/ToastContainer.vue'
 import {
   LayoutDashboard, Database, FolderOpen, FileText, Search, Puzzle, Link,
   Users, Shield, KeyRound, Lock, Trash2, Anchor, Zap, Heart, Settings,
   Menu, X, Box, PenTool, Code
 } from 'lucide-vue-next'
+import ToastContainer from '@/Components/ToastContainer.vue'
 
-const page = usePage()
 const mobileOpen = ref(false)
-
-// Mode: 'editor' or 'developer', persisted in localStorage
 const mode = ref('developer')
 
 onMounted(() => {
@@ -195,6 +181,7 @@ function setMode(m) {
   localStorage.setItem('bangron_mode', m)
 }
 
+// Simplified title map — used only for mobile top bar
 const titleMap = {
   Dashboard: 'Overview',
   Setup: 'Setup',
@@ -205,9 +192,9 @@ const titleMap = {
   Databases: 'Databases',
   Collections: 'Collections',
   Documents: 'Documents',
-  Query: 'Query Builder',
+  Query: 'Query',
   Encryption: 'Encryption',
-  Schema: 'Schema Builder',
+  Schema: 'Schema',
   SoftDeletes: 'Soft Deletes',
   Hooks: 'Hooks',
   Relations: 'Relations',
@@ -216,45 +203,23 @@ const titleMap = {
   Config: 'Settings',
 }
 
-const descMap = {
-  Dashboard: 'System overview and quick access to all features',
-  Setup: 'Initialize your admin account and first database',
-  Users: 'Manage user accounts, roles, and tokens',
-  Roles: 'Define roles and their permissions',
-  Tokens: 'View and manage JWT tokens and blacklist',
-  Acl: 'Configure access control, field-level rules, and audit logs',
-  Databases: 'Create, rename, and manage your databases',
-  Collections: 'Manage collections within a database',
-  Documents: 'Spreadsheet-like data browser with inline editing, filters, and export',
-  Query: 'Build and run queries with Mongo-style operators',
-  Encryption: 'Configure AES-256-GCM encryption and searchable fields',
-  Schema: 'Design collection schemas with visual builder',
-  SoftDeletes: 'Recover deleted records or permanently remove them',
-  Hooks: 'Configure lifecycle event handlers',
-  Relations: 'Set up and test cross-collection relations',
-  Indexes: 'Create indexes to optimize query performance',
-  Health: 'Monitor database health and performance metrics',
-  Config: 'Configure dynamic settings and ID generation modes',
-}
-
-const title = computed(() => {
-  const name = page.component?.split('/')?.[0] || 'Dashboard'
-  return titleMap[name] || name
+const pageTitle = computed(() => {
+  const path = typeof window !== 'undefined' ? window.location.pathname : ''
+  // Extract page name from /app/xxx or /
+  if (path === '/') return 'Overview'
+  const match = path.match(/^\/app\/([\w-]+)/)
+  const name = match ? match[1].split('-').map(w => w[0].toUpperCase() + w.slice(1)).join('') : ''
+  return titleMap[name] || name || 'Bangron Studio'
 })
 
-const description = computed(() => {
-  const name = page.component?.split('/')?.[0] || 'Dashboard'
-  return descMap[name] || 'Bangron Studio'
-})
-
-// Editor mode nav — simplified, content-focused
+// Editor mode nav
 const editorNav = [
   { label: 'Collections', href: '/app/collections', icon: FolderOpen },
   { label: 'Documents',   href: '/app/documents',   icon: FileText },
   { label: 'Users',       href: '/app/users',       icon: Users },
 ]
 
-// Developer mode nav — full access
+// Developer mode nav
 const navData = [
   { label: 'Databases',   href: '/app/databases',   icon: Database },
   { label: 'Collections', href: '/app/collections', icon: FolderOpen },
@@ -280,7 +245,6 @@ const navSystem = [
   { label: 'Settings',     href: '/app/config',       icon: Settings },
 ]
 
-// Bottom navs per mode
 const editorBottomNav = [
   { label: 'Home',  href: '/',                icon: LayoutDashboard },
   { label: 'Data',  href: '/app/collections', icon: FolderOpen },

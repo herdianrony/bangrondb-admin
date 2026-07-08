@@ -1,5 +1,14 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 grid place-items-center">
+        <Zap class="w-4 h-4 text-amber-400" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Indexes</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Create indexes to optimize query performance</p>
+      </div>
+    </div>
     <div class="card flex gap-3 flex-wrap items-end">
       <input v-model="db" placeholder="db" class="input w-44"/>
       <input v-model="col" placeholder="collection" class="input w-44"/>

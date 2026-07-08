@@ -1,5 +1,14 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 grid place-items-center">
+        <Database class="w-4 h-4 text-blue-400" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Databases</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Create, rename, and manage your databases</p>
+      </div>
+    </div>
     <div class="card flex flex-wrap gap-3 items-end">
       <div class="flex-1 min-w-[200px]">
         <label class="section-label">Database Name</label>

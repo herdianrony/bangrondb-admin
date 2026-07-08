@@ -1,15 +1,13 @@
 <template>
   <div class="space-y-6 animate-fade-in">
-    <!-- Welcome Banner -->
-    <div class="card !p-6 bg-gradient-to-br from-indigo-600/20 to-violet-600/10 !border-indigo-500/20">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 grid place-items-center flex-shrink-0">
-          <Box class="w-6 h-6 text-indigo-400" />
-        </div>
-        <div>
-          <h2 class="text-lg font-bold text-white">Welcome to Bangron Studio</h2>
-          <p class="text-slate-400 text-sm mt-0.5">Your backend is running. Start by creating a database or browse existing data.</p>
-        </div>
+    <!-- Page Header -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg shadow-indigo-500/20">
+        <Box class="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Overview</h1>
+        <p class="text-slate-500 text-sm mt-0.5">System status and quick access to all features</p>
       </div>
     </div>
 

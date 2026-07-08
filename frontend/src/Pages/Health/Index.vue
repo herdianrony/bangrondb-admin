@@ -1,5 +1,14 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 grid place-items-center">
+        <Heart class="w-4 h-4 text-emerald-400" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Health</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Monitor database health and performance metrics</p>
+      </div>
+    </div>
     <div class="card flex gap-3 items-end flex-wrap">
       <input v-model="db" class="input w-56" placeholder="database name"/>
       <button class="btn flex items-center gap-2" @click="load"><Heart :size="16" /> Check Health</button>

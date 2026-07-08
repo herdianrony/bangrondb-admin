@@ -1,13 +1,15 @@
 <template>
-  <div class="space-y-6 animate-fade-in">
-    <!-- ── Header ── -->
-    <div class="page-header">
+  <div class="space-y-5 animate-fade-in">
+    <!-- ── Page Header ── -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="page-title flex items-center gap-2.5">
-          <Database class="w-6 h-6 text-indigo-400" />
+        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 grid place-items-center">
+            <Database class="w-4 h-4 text-violet-400" />
+          </div>
           Collections
         </h1>
-        <p class="page-desc">Manage collections and their schemas across your databases</p>
+        <p class="text-slate-500 text-sm mt-1">Manage collections and their schemas across your databases</p>
       </div>
       <button class="btn" @click="openCreateModal">
         <Plus class="w-4 h-4" />

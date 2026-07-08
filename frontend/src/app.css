@@ -168,6 +168,9 @@ body {
 .nav-item-icon {
   @apply w-[18px] h-[18px] flex-shrink-0;
 }
+.nav-item.active .nav-item-icon {
+  @apply text-indigo-400;
+}
 
 /* ── Mode Switcher ── */
 .mode-switcher {
@@ -181,6 +184,17 @@ body {
 .mode-btn.active {
   @apply bg-indigo-500/15 text-indigo-300;
   box-shadow: 0 1px 3px rgba(99,102,241,0.15);
+}
+
+/* ── Mode Badge (sidebar footer) ── */
+.mode-badge {
+  @apply text-[10px] font-medium px-2 py-0.5 rounded-md;
+}
+.mode-badge-editor {
+  @apply bg-indigo-500/10 text-indigo-400 border border-indigo-500/20;
+}
+.mode-badge-dev {
+  @apply bg-violet-500/10 text-violet-400 border border-violet-500/20;
 }
 
 /* ── Mobile Bottom Nav ── */

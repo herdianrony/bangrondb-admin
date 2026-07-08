@@ -1,5 +1,14 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-5 animate-fade-in">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/20 grid place-items-center">
+        <Puzzle class="w-4 h-4 text-cyan-400" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Schema Builder</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Design collection schemas with visual builder</p>
+      </div>
+    </div>
     <!-- top bar -->
     <div class="card">
       <div class="flex flex-wrap gap-3 items-end">
