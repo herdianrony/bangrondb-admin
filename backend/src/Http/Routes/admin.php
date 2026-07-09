@@ -17,6 +17,7 @@ declare(strict_types=1);
  */
 
 use App\Controllers\AdminController;
+use App\Controllers\PermissionController;
 
 // ---------- Users Management ----------
 Flight::route('GET    /admin/users',                            [AdminController::class, 'users']);
@@ -34,6 +35,12 @@ Flight::route('DELETE /admin/roles/@name',                      [AdminController
 
 // ---------- Permission Matrix Test ----------
 Flight::route('POST   /admin/acl/check',                        [AdminController::class, 'aclCheck']);
+
+// ---------- Permissions Management ----------
+Flight::route('GET    /admin/permissions',                      [PermissionController::class, 'index']);
+Flight::route('POST   /admin/permissions',                      [PermissionController::class, 'store']);
+Flight::route('PUT    /admin/permissions/@name',                [PermissionController::class, 'update']);
+Flight::route('DELETE /admin/permissions/@name',                [PermissionController::class, 'destroy']);
 
 // ---------- Token Admin ----------
 Flight::route('POST   /admin/users/@id/revoke-tokens',          [AdminController::class, 'revokeTokens']);

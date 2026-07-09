@@ -20,13 +20,13 @@
         <div class="table-container">
           <table class="data-table">
             <thead>
-              <tr><th>Username</th><th>Email</th><th>Roles</th><th>Status</th><th></th></tr>
+              <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
               <tr v-for="u in users" :key="u._id">
                 <td class="py-2 font-medium">{{ u.username }}<div class="text-[11px] text-slate-500">{{ u._id }}</div></td>
                 <td>{{ u.email }}</td>
-                <td><span v-for="r in (u.roles||[])" :key="r" class="badge mr-1">{{ r }}</span></td>
+                <td><span class="badge mr-1">{{ u.role || (u.roles && u.roles[0]) || 'user' }}</span></td>
                 <td>
                   <span v-if="u.active!==false" class="text-emerald-400 flex items-center gap-1">
                     <CheckCircle :size="14" />
@@ -74,12 +74,11 @@
         <input v-model="form.name" placeholder="Full Name" class="input"/>
         <input v-model="form.password" type="password" placeholder="Leave empty to auto-generate" class="input"/>
         <div>
-          <div class="text-xs text-slate-400 mb-1">Roles</div>
-          <div class="flex flex-wrap gap-2">
-            <label v-for="r in allRoles" :key="r.name" class="text-xs flex items-center gap-1">
-              <input type="checkbox" :value="r.name" v-model="form.roles"> {{ r.name }}
-            </label>
-          </div>
+          <div class="text-xs text-slate-400 mb-1">Role <span class="text-[10px] text-amber-400">(single relation)</span></div>
+          <select v-model="form.role" class="input">
+            <option v-for="r in allRoles" :key="r.name" :value="r.name">{{ r.label || r.name }}</option>
+          </select>
+          <div class="text-[10px] text-slate-500 mt-1">auth.users.role → auth.roles._id</div>
         </div>
         <label class="text-sm flex items-center gap-2"><input type="checkbox" v-model="form.active"> Active</label>
         <div class="flex gap-2">
@@ -153,6 +152,9 @@ import {
   UserPlus,
   UserCog
 } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const users = ref([])
 const allRoles = ref([])
@@ -160,7 +162,7 @@ const tokens = ref([])
 const blacklist = ref([])
 const result = ref('')
 
-const form = reactive({ _id:'', username:'', email:'', name:'', password:'', roles:['user'], active:true })
+const form = reactive({ _id:'', username:'', email:'', name:'', password:'', role:'user', roles:['user'], active:true })
 
 async function load(){
   const r = await axios.get('/admin/users').catch(()=>({data:{data:[]}}))
@@ -168,17 +170,19 @@ async function load(){
   const rr = await axios.get('/admin/roles').catch(()=>({data:{data:[]}}))
   allRoles.value = rr.data.data || []
 }
-function resetForm(){ Object.assign(form,{_id:'',username:'',email:'',name:'',password:'',roles:['user'],active:true}); result.value='' }
+function resetForm(){ Object.assign(form,{_id:'',username:'',email:'',name:'',password:'',role:'user',roles:['user'],active:true}); result.value='' }
 function editUser(u){
-  Object.assign(form, {_id:u._id, username:u.username, email:u.email||'', name:u.name||'', password:'', roles:u.roles||['user'], active:u.active!==false})
+  const r = u.role || (u.roles && u.roles[0]) || 'user'
+  Object.assign(form, {_id:u._id, username:u.username, email:u.email||'', name:u.name||'', password:'', role:r, roles:[r], active:u.active!==false})
 }
 async function save(){
   try{
+    const payload = {...form, roles:[form.role]}
     if(form._id){
-      await axios.put(`/admin/users/${form._id}`, {...form})
+      await axios.put(`/admin/users/${form._id}`, payload)
       result.value = 'updated'
     }else{
-      const r = await axios.post('/admin/users', {...form})
+      const r = await axios.post('/admin/users', payload)
       result.value = JSON.stringify(r.data, null, 2)
     }
     resetForm(); load()
@@ -186,7 +190,7 @@ async function save(){
 }
 async function resetPass(u){
   const r = await axios.post(`/admin/users/${u._id}/reset-password`, {})
-  alert('Password baru: ' + r.data.new_password)
+  toast.info('Password baru: ' + r.data.new_password)
   load()
 }
 async function toggleActive(u){
@@ -195,7 +199,7 @@ async function toggleActive(u){
 }
 async function revokeTokens(u){
   await axios.post(`/admin/users/${u._id}/revoke-tokens`, {})
-  alert('Token untuk '+u.username+' telah dicabut')
+  toast.info('Token untuk '+u.username+' telah dicabut')
   loadTokens()
 }
 async function loadTokens(){

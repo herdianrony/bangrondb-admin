@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -27,11 +28,25 @@ Flight::route('GET /setup', [InertiaController::class, 'setup']);
 Flight::route('GET /auth/login', [InertiaController::class, 'authLogin']);
 Flight::route('GET /auth/register', [InertiaController::class, 'authRegister']);
 
+// Admin Studio pages
+Flight::route('GET /users', function () {
+    \Flight::inertia()->render('Users/Index', []);
+});
+Flight::route('GET /roles', function () {
+    \Flight::inertia()->render('Roles/Index', []);
+});
+Flight::route('GET /permissions', function () {
+    \Flight::inertia()->render('Permissions/Index', []);
+});
+Flight::route('GET /tokens', function () {
+    \Flight::inertia()->render('Tokens/Index', []);
+});
+Flight::route('GET /acl', function () {
+    \Flight::inertia()->render('Acl/Index', []);
+});
+
 // Database detail — shows collections inside a database
 Flight::route('GET /databases/@db', [InertiaController::class, 'database']);
 
 // Collection detail — shows documents inside a collection
 Flight::route('GET /databases/@db/collections/@col', [InertiaController::class, 'collection']);
-
-// Catch-all fallback — 404 via Inertia
-Flight::route('GET /@path', [InertiaController::class, 'fallback']);

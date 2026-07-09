@@ -268,6 +268,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import { Shield, User, Lock, Unlock, Plus, X, RefreshCw, Play, Key, FileText, LogIn, LogOut, Copy } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const db = ref('app')
 const col = ref('users')
@@ -313,7 +316,7 @@ async function doRegister(){
       role: 'admin'
     })
     await doLogin()
-  }catch(e){ alert(e.response?.data?.message || e.message) }
+  }catch(e){ toast.error(e.response?.data?.message || e.message) }
 }
 async function doLogin(){
   try{
@@ -327,7 +330,7 @@ async function doLogin(){
     localStorage.setItem('bangrondb_user', JSON.stringify(authUser.value))
     axios.defaults.headers.common['Authorization'] = 'Bearer ' + authToken.value
     testResult.value = 'Logged in as ' + (authUser.value.username||'?') + ' roles: ' + (r.data.roles||[]).join(',')
-  }catch(e){ alert(e.response?.data?.message || e.message) }
+  }catch(e){ toast.error(e.response?.data?.message || e.message) }
 }
 function logout(){
   authToken.value=''; authUser.value=null
@@ -407,7 +410,7 @@ function setRowFilter(role, txt){
     const o = txt.trim() ? JSON.parse(txt) : {}
     if(!acl.row_filters) acl.row_filters = {}
     acl.row_filters[role] = o
-  }catch(e){ alert('JSON invalid '+e.message) }
+  }catch(e){ toast.error('JSON invalid '+e.message) }
 }
 
 // api keys

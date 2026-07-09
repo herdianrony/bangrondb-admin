@@ -146,15 +146,19 @@ class Acl
         $roleDefs = $acl['roles'] ?? [];
         foreach ($roles as $r) {
             $perms = $roleDefs[$r] ?? [];
-            if (in_array('*', $perms, true)) return true;
-            if (in_array($action, $perms, true)) return true;
-            $map = [
-                'find' => 'read', 'findOne' => 'read', 'count' => 'read',
-                'insert' => 'create', 'save' => 'create',
-                'update' => 'update',
-                'remove' => 'delete', 'delete' => 'delete',
-            ];
-            if (isset($map[$action]) && in_array($map[$action], $perms, true)) return true;
+            if (class_exists(\\App\\Security\\PermissionRegistry::class)) {
+                if (\\App\\Security\\PermissionRegistry::isAllowed($action, $perms)) return true;
+            } else {
+                if (in_array('*', $perms, true)) return true;
+                if (in_array($action, $perms, true)) return true;
+                $map = [
+                    'find' => 'read', 'findOne' => 'read', 'count' => 'read',
+                    'insert' => 'create', 'save' => 'create',
+                    'update' => 'update',
+                    'remove' => 'delete', 'delete' => 'delete',
+                ];
+                if (isset($map[$action]) && in_array($map[$action], $perms, true)) return true;
+            }
         }
         return false;
     }

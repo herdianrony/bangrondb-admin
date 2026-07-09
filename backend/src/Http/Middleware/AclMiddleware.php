@@ -17,7 +17,7 @@ class AclMiddleware
     public static function guard(string $db, string $collection, string $action): bool
     {
         try {
-            $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+            $dbPath = \Flight::bangron()->getPath();
             Audit::init($dbPath);
 
             $col   = \Flight::bangron()->getCollection($db, $collection);
@@ -65,7 +65,7 @@ class AclMiddleware
     public static function audit(string $action, string $db, string $collection, array $meta = [], string $status = 'ok'): void
     {
         $user = \Flight::get('acl_user') ?? ['roles' => \Flight::get('acl_roles') ?? ['guest']];
-        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        $dbPath = \Flight::bangron()->getPath();
         Audit::log($dbPath, $action, $db, $collection, $user, $meta, $status);
     }
 

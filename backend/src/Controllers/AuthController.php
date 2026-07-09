@@ -14,11 +14,6 @@ use Throwable;
 
 class AuthController
 {
-    private static function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     /**
      * POST /api/auth/register
      */
@@ -53,22 +48,41 @@ class AuthController
             return;
         }
 
+        // ensure schema role relation
+        if (method_exists($users, 'setSchema')) {
+            try {
+                $users->setSchema([
+                    'username'=>['required'=>true,'type'=>'string','unique'=>true],
+                    'email'=>['type'=>'email','unique'=>true],
+                    'name'=>['type'=>'string'],
+                    'password_hash'=>['type'=>'string','hidden'=>true],
+                    'role'=>['required'=>true,'type'=>'relation','relation'=>['db'=>'auth','collection'=>'roles','field'=>'_id','display'=>'name','type'=>'one'],'default'=>'user'],
+                    'roles'=>['type'=>'array','hidden'=>true],
+                    'active'=>['type'=>'bool','default'=>true],
+                    'created_at'=>['type'=>'datetime','readonly'=>true],
+                ]);
+                $users->saveConfiguration();
+            } catch (\Throwable $e) {}
+        }
+
         $hash = password_hash($password, PASSWORD_ARGON2ID);
         $id   = $users->insert([
             'username'      => $username,
             'email'         => $email,
+            'name'          => $body['name'] ?? $username,
             'password_hash' => $hash,
+            'role'          => $role,
             'roles'         => [$role],
             'created_at'    => date('c'),
             'active'        => true,
         ]);
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.register',
             $authDb,
             $authCol,
-            ['id' => $id, 'username' => $username, 'roles' => [$role]],
+            ['id' => $id, 'username' => $username, 'role'=>$role, 'roles' => [$role]],
             [],
             'ok'
         );
@@ -104,7 +118,7 @@ class AuthController
 
         if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
             Audit::log(
-                self::dbPath(),
+                \Flight::bangron()->getPath(),
                 'auth.login_failed',
                 $authDb,
                 $authCol,
@@ -122,13 +136,18 @@ class AuthController
             return;
         }
 
-        $roles   = $user['roles'] ?? ['user'];
+        $roleSingle = $user['role'] ?? null;
+        $roles   = $user['roles'] ?? ($roleSingle ? [$roleSingle] : ['user']);
+        if ($roleSingle && !in_array($roleSingle, $roles, true)) {
+            $roles = array_unique(array_merge([$roleSingle], $roles));
+        }
+        $primaryRole = $roleSingle ?? ($roles[0] ?? 'user');
         $payload = [
             'sub'      => $user['_id'] ?? null,
             'username' => $user['username'] ?? null,
             'email'    => $user['email'] ?? null,
             'roles'    => $roles,
-            'role'     => $roles[0] ?? 'user',
+            'role'     => $primaryRole,
             'name'     => $user['name'] ?? $user['username'] ?? null,
         ];
 
@@ -152,7 +171,7 @@ class AuthController
         );
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.login',
             $authDb,
             $authCol,
@@ -240,7 +259,7 @@ class AuthController
         );
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.refresh',
             'auth',
             'refresh_tokens',

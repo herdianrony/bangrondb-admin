@@ -122,7 +122,11 @@
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import SchemaBuilder from '@/Components/SchemaBuilder.vue'
+import { useToast } from '@/composables/useToast'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
 import { Puzzle, FileJson, Check, Save, Code2, ArrowLeftRight } from 'lucide-vue-next'
+
+const toast = useToast()
 
 const db = ref('app')
 const col = ref('users')
@@ -144,7 +148,7 @@ watch(schema, v => { schemaText.value = JSON.stringify(v, null, 2) }, {deep:true
 function syncFromBuilder(){ schemaText.value = JSON.stringify(schema.value, null, 2) }
 function syncToBuilder(){
   try{ schema.value = JSON.parse(schemaText.value); tab.value='builder' }
-  catch(e){ alert('JSON tidak valid: '+e.message) }
+  catch(e){ toast.error('JSON tidak valid: '+e.message) }
 }
 
 const requiredCount = computed(()=> Object.values(schema.value).filter(f=>f?.required).length)
@@ -196,10 +200,10 @@ async function saveSchema(){
     const r = await axios.post(`/databases/${db.value}/collections/${col.value}/schema`, { schema: payload })
     result.value = JSON.stringify({saved:true, ...r.data}, null, 2)
     tab.value='validate'
-    alert('Schema berhasil disimpan ke BangronDB!')
+    toast.success('Schema berhasil disimpan ke BangronDB!')
   }catch(e){
     result.value = JSON.stringify({error:e.response?.data?.message || e.message}, null, 2)
-    alert('Gagal save: '+(e.response?.data?.message||e.message))
+    toast.error('Gagal save: '+(e.response?.data?.message||e.message))
   }
 }
 
@@ -272,8 +276,8 @@ function seedExampleDoc(){
   docText.value = JSON.stringify(out, null, 2)
 }
 
-function clearSchema(){
-  if(confirm('Clear semua field?')){ schema.value = {}; }
+async function clearSchema(){
+  if(await confirmDialog({ title:'Clear Schema', message:'Clear semua field?', confirmText:'Clear', danger:true })){ schema.value = {}; }
 }
 
 // initial sync

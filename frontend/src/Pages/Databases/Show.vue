@@ -144,6 +144,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import { usePage } from '@inertiajs/vue3'
+import { useToast } from '@/composables/useToast'
 import {
   Database, FolderOpen, FolderPlus, Plus, ExternalLink, Trash2,
   RefreshCw, Hash, Layers, X, AlertCircle, Loader2, ArrowLeft,
@@ -152,6 +153,7 @@ import {
 const page = usePage()
 const db = computed(() => page.props.db || '')
 const api = axios.create({ baseURL: '' })
+const toast = useToast()
 
 const collections = ref([])
 const loading = ref(false)
@@ -218,7 +220,7 @@ async function confirmDelete(name) {
     deleteTarget.value = null
     await load()
   } catch (e) {
-    alert('Gagal menghapus: ' + (e.response?.data?.message || e.message))
+    toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message))
   }
 }
 </script>

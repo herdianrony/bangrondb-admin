@@ -40,9 +40,21 @@
         <input v-model="form.name" :disabled="!!form._id" placeholder="Role Name" class="input"/>
         <input v-model="form.label" placeholder="Label" class="input"/>
         <input v-model="form.description" placeholder="Description" class="input"/>
-        <div class="section-label">Permissions</div>
-        <div class="grid grid-cols-2 gap-1 text-sm">
-          <label v-for="p in perms" :key="p"><input type="checkbox" :value="p" v-model="form.permissions"> {{ p }}</label>
+        <div class="section-label flex justify-between"><span>Permissions</span><a href="/permissions" class="text-indigo-400 text-[11px]">manage →</a></div>
+        <div class="max-h-80 overflow-auto border border-slate-800 rounded-xl p-3 bg-slate-950 text-sm space-y-2">
+          <div v-if="Object.keys(permsGrouped).length">
+            <div v-for="(items, grp) in permsGrouped" :key="grp" class="mb-2">
+              <div class="text-[10px] uppercase text-slate-500">{{ grp }}</div>
+              <label v-for="p in items" :key="p.name" class="flex items-center gap-2 text-xs py-0.5">
+                <input type="checkbox" :value="p.name" v-model="form.permissions">
+                <span class="font-mono">{{ p.name }}</span>
+                <span class="text-slate-400">– {{ p.label }}</span>
+              </label>
+            </div>
+          </div>
+          <div v-else class="grid grid-cols-2 gap-1">
+            <label v-for="p in perms" :key="p"><input type="checkbox" :value="p" v-model="form.permissions"> {{ p }}</label>
+          </div>
         </div>
         <button class="btn w-full" @click="save">{{ form._id ? 'Update' : 'Create' }}</button>
         <button v-if="form._id" class="btn-ghost w-full" @click="reset">
@@ -54,13 +66,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
 import { Shield, Pencil, Trash2, Plus, Save, X } from 'lucide-vue-next'
 const roles = ref([])
-const perms = ['*','read','create','update','delete','manage_schema','manage_acl','find','count']
+const permsList = ref([])
+const permsGrouped = ref({})
+const perms = computed(()=> permsList.value.map(p=>p.name))
 const form = reactive({ _id:'', name:'', label:'', description:'', permissions:['read'] })
-async function load(){ const r = await axios.get('/admin/roles'); roles.value = r.data.data||[] }
+async function load(){ 
+  const r = await axios.get('/admin/roles'); roles.value = r.data.data||[]
+  try{
+    const pr = await axios.get('/admin/permissions')
+    permsList.value = pr.data.data || []
+    permsGrouped.value = pr.data.grouped || {}
+  }catch(e){
+    permsList.value = ['*','read','create','update','delete','manage_schema','manage_acl','export','import','publish','approve'].map(n=>({name:n,label:n}))
+  }
+}
 function edit(r){ Object.assign(form, {_id:r.name, name:r.name, label:r.label||'', description:r.description||'', permissions:r.permissions||[] }) }
 function reset(){ Object.assign(form, {_id:'', name:'', label:'', description:'', permissions:['read'] }) }
 async function save(){
@@ -71,6 +95,10 @@ async function save(){
   }
   reset(); load()
 }
-async function remove(r){ if(confirm('Hapus role '+r.name+'?')){ await axios.delete(`/admin/roles/${r.name}`); load() } }
+async function remove(r){
+  if(await confirmDialog({ title:'Delete Role', message:'Hapus role '+r.name+'?', confirmText:'Hapus', danger:true })){
+    await axios.delete(`/admin/roles/${r.name}`); load()
+  }
+}
 onMounted(load)
 </script>

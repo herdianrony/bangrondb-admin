@@ -7,11 +7,6 @@ use App\Security\Audit;
 
 class AuditController
 {
-    private function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     /**
      * GET /api/audit/logs — Query audit logs with filter, limit, skip.
      */
@@ -22,7 +17,7 @@ class AuditController
         $limit = (int) ($query['limit'] ?? 100);
         $skip = (int) ($query['skip'] ?? 0);
 
-        $result = Audit::query($this->dbPath(), $filter, $limit, $skip);
+        $result = Audit::query(\Flight::bangron()->getPath(), $filter, $limit, $skip);
 
         \Flight::json($result);
     }
@@ -32,7 +27,7 @@ class AuditController
      */
     public function stats(): void
     {
-        $result = Audit::query($this->dbPath(), [], 1, 0);
+        $result = Audit::query(\Flight::bangron()->getPath(), [], 1, 0);
 
         \Flight::json([
             'total_logged' => $result['total'] ?? 0,

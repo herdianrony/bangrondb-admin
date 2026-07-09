@@ -12,7 +12,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button class="btn" @click="openCreateModal">
+        <button class="btn" @click="actions.openCreate()">
           <Plus class="w-4 h-4" />
           <span class="hidden sm:inline">New Database</span>
         </button>
@@ -47,8 +47,8 @@
             </div>
           </a>
           <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button class="btn-ghost-sm !p-1.5" @click="renameDb(db)" title="Rename"><Pencil class="w-3.5 h-3.5" /></button>
-            <button class="btn-ghost-sm !p-1.5 !text-red-400 !border-red-800/40 hover:!bg-red-950/40" @click="drop(db)" title="Delete"><Trash2 class="w-3.5 h-3.5" /></button>
+            <button class="btn-ghost-sm !p-1.5" @click="actions.openRename(db)" title="Rename"><Pencil class="w-3.5 h-3.5" /></button>
+            <button class="btn-ghost-sm !p-1.5 !text-red-400 !border-red-800/40 hover:!bg-red-950/40" @click="actions.openDrop(db)" title="Delete"><Trash2 class="w-3.5 h-3.5" /></button>
           </div>
         </div>
         <a :href="`/databases/${db}`" class="btn-ghost-sm w-full text-center flex items-center justify-center gap-1.5">
@@ -64,46 +64,23 @@
       <div class="font-medium text-slate-400">No databases yet</div>
       <div class="text-sm text-slate-600 mt-1">Create your first database to get started</div>
     </div>
-
-    <!-- Create DB Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" @click.self="showModal = false">
-      <div class="card w-full max-w-sm my-8 animate-scale-in">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="font-bold text-lg text-white">New Database</h3>
-          <button class="btn-ghost-sm" @click="showModal = false"><X class="w-4 h-4" /></button>
-        </div>
-        <div class="mb-5">
-          <label class="section-label">Database Name</label>
-          <div class="relative">
-            <Database class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input v-model="name" class="input !pl-10" placeholder="app_v2" @keyup.enter="createDB" ref="nameInput" />
-          </div>
-          <p v-if="error" class="text-red-400 text-xs mt-1.5">{{ error }}</p>
-        </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
-          <button class="btn-ghost" @click="showModal = false">Cancel</button>
-          <button class="btn" :disabled="!name.trim()" @click="createDB"><Plus class="w-4 h-4" />Create</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { usePage, router } from '@inertiajs/vue3'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
-import { Box, Database, Plus, RefreshCw, ExternalLink, Pencil, Trash2, X, Zap, FolderOpen, FileText } from 'lucide-vue-next'
+import { Box, Database, Plus, RefreshCw, ExternalLink, Pencil, Trash2, Zap, FolderOpen, FileText } from 'lucide-vue-next'
+import { usePage } from '@inertiajs/vue3'
+import { useDatabaseActions, DB_CHANGED_EVENT } from '@/composables/useDatabaseActions'
 
 const page = usePage()
 const stats = computed(() => page.props.stats || {})
 
 const list = ref([])
 const loading = ref(false)
-const name = ref('')
-const showModal = ref(false)
-const error = ref('')
-const nameInput = ref(null)
+
+const actions = useDatabaseActions()
 
 const kpis = computed(() => [
   { label: 'Databases', value: stats.value.databases ?? list.value.length ?? 0, icon: Database },
@@ -112,7 +89,11 @@ const kpis = computed(() => [
   { label: 'Health', value: stats.value.health?.status || 'OK', icon: Zap },
 ])
 
-onMounted(load)
+onMounted(() => {
+  load()
+  window.addEventListener(DB_CHANGED_EVENT, load)
+})
+onBeforeUnmount(() => window.removeEventListener(DB_CHANGED_EVENT, load))
 
 async function load() {
   loading.value = true
@@ -122,31 +103,4 @@ async function load() {
   } catch { list.value = [] }
   finally { loading.value = false }
 }
-
-function openCreateModal() {
-  name.value = ''; error.value = ''; showModal.value = true
-  nextTick(() => nameInput.value?.focus())
-}
-
-async function createDB() {
-  if (!name.value.trim()) return
-  error.value = ''
-  try {
-    await axios.post('/databases', { name: name.value.trim() })
-    name.value = ''; showModal.value = false; load()
-  } catch (e) { error.value = e.response?.data?.message || 'Gagal membuat database' }
-}
-
-async function drop(db) {
-  if (!confirm('Drop ' + db + '?')) return
-  try { await axios.delete('/databases/' + db); load() } catch (e) { alert(e.response?.data?.message || e.message) }
-}
-
-async function renameDb(old) {
-  const nn = prompt('Rename ' + old + ' to:', old + '_v2')
-  if (!nn) return
-  try { await axios.post(`/databases/${old}/rename`, { new_name: nn }); load() } catch (e) { alert(e.response?.data?.message || e.message) }
-}
-
-function refresh() { router.reload({ only: ['stats'] }) }
 </script>

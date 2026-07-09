@@ -16,11 +16,6 @@ class AdminController
         return \Flight::bangron()->getClient();
     }
 
-    private function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     private function ensureAuthDb(Client $client): void
     {
         if (!$client->dbExists('auth')) {
@@ -29,6 +24,27 @@ class AdminController
         if (!$client->collectionExists('auth', 'users')) {
             $client->createCollection('auth', 'users');
         }
+        // ensure users schema single role
+        try {
+            $col = $client->selectCollection('auth', 'users');
+            if (method_exists($col, 'setSchema')) {
+                $col->setSchema([
+                    'username' => ['required'=>true,'type'=>'string','unique'=>true],
+                    'email' => ['type'=>'email','unique'=>true],
+                    'name' => ['type'=>'string'],
+                    'password_hash' => ['type'=>'string','hidden'=>true],
+                    'role' => [
+                        'required'=>true,'type'=>'relation',
+                        'relation'=>['db'=>'auth','collection'=>'roles','field'=>'_id','display'=>'name','type'=>'one'],
+                        'default'=>'user'
+                    ],
+                    'roles' => ['type'=>'array','hidden'=>true],
+                    'active' => ['type'=>'bool','default'=>true],
+                    'created_at' => ['type'=>'datetime','readonly'=>true],
+                ]);
+                $col->saveConfiguration();
+            }
+        } catch (\Throwable $e) {}
     }
 
     private function ensureRolesCollection(Client $client): void
@@ -81,7 +97,9 @@ class AdminController
         $username = trim($body['username'] ?? '');
         $email = trim($body['email'] ?? '');
         $password = $body['password'] ?? bin2hex(random_bytes(6));
-        $roles = $body['roles'] ?? ['user'];
+        $role = $body['role'] ?? $body['roles'][0] ?? 'user';
+        $roles = $body['roles'] ?? [$role];
+        if (is_string($roles)) $roles = [$roles];
 
         if (!$username) {
             \Flight::json(['error' => true, 'message' => 'Username wajib diisi'], 400);
@@ -98,7 +116,8 @@ class AdminController
             'email' => $email,
             'name' => $body['name'] ?? $username,
             'password_hash' => password_hash($password, PASSWORD_ARGON2ID),
-            'roles' => is_array($roles) ? $roles : [$roles],
+            'role' => $role,
+            'roles' => is_array($roles) ? $roles : [$role],
             'active' => $body['active'] ?? true,
             'created_at' => date('c'),
         ];
@@ -106,7 +125,7 @@ class AdminController
         $id = $col->insert($doc);
 
         Audit::log(
-            $this->dbPath(),
+            \Flight::bangron()->getPath(),
             'admin.user.create',
             'auth',
             'users',
@@ -136,10 +155,20 @@ class AdminController
             return;
         }
 
-        foreach (['email', 'name', 'active', 'roles'] as $field) {
+        foreach (['email', 'name', 'active'] as $field) {
             if (array_key_exists($field, $body)) {
                 $user[$field] = $body[$field];
             }
+        }
+        if (isset($body['role'])) {
+            $user['role'] = $body['role'];
+            $user['roles'] = [$body['role']];
+        }
+        if (array_key_exists('roles', $body)) {
+            $r = $body['roles'];
+            if (is_string($r)) $r = [$r];
+            $user['roles'] = $r;
+            if (empty($user['role']) && !empty($r[0])) $user['role'] = $r[0];
         }
 
         if (!empty($body['password'])) {
@@ -147,7 +176,7 @@ class AdminController
         }
 
         $col->save($user);
-
+        \App\Security\Acl::clearCache();
         \Flight::json(['ok' => true]);
     }
 

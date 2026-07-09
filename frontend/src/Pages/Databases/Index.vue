@@ -67,6 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { confirm as confirmDialog, prompt as promptDialog } from '@/composables/useConfirm'
 import { Database, Plus, RefreshCw, ExternalLink, Pencil, Trash2 } from 'lucide-vue-next'
 
 const list = ref([])
@@ -83,12 +84,12 @@ async function createDB() {
   load()
 }
 async function drop(db) {
-  if (!confirm('Drop ' + db + ' ?')) return
+  if (!(await confirmDialog({ title: 'Delete Database', message: 'Drop ' + db + '?', confirmText: 'Delete', danger: true }))) return
   await axios.delete('/databases/' + db)
   load()
 }
 async function renameDb(old) {
-  const nn = prompt('Rename ' + old + ' to:', old + '_v2')
+  const nn = await promptDialog({ title: 'Rename Database', label: 'New name', default: old + '_v2' })
   if (!nn) return
   await axios.post(`/databases/${old}/rename`, { new_name: nn })
   load()
