@@ -16,12 +16,20 @@ class InertiaController
         if ($this->needsSetup($dbPath)) {
             \Flight::inertia()->render('Setup/Index', [
                 'stats' => ['databases' => 0, 'collections' => 0, 'documents' => 0, 'total_size_mb' => 0, 'php_version' => PHP_VERSION, 'health' => ['status' => 'ok']],
+                'auth' => null,
             ]);
             return;
         }
 
+        $authUser = class_exists(\App\Security\SessionAuth::class) ? \App\Security\SessionAuth::user() : null;
+
         \Flight::inertia()->render('Dashboard/Index', [
-            'stats' => \Flight::bangron()->dashboardStats()
+            'stats' => \Flight::bangron()->dashboardStats(),
+            'auth' => $authUser ? [
+                'user' => $authUser,
+                'role' => $authUser['role'] ?? null,
+                'roles' => $authUser['roles'] ?? [],
+            ] : null,
         ]);
     }
 

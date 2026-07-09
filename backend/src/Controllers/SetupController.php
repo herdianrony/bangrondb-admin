@@ -34,7 +34,10 @@ class SetupController
             try {
                 $u = $client->selectCollection('auth', 'users');
                 $userCount = $u->count();
-                $adminExists = $u->findOne(['roles' => ['$in' => ['superadmin', 'admin']]]) !== null;
+                $adminExists = $u->findOne(['$or'=>[
+                    ['role'=>['$in'=>['superadmin','admin']]],
+                    ['roles' => ['$in' => ['superadmin', 'admin']]]
+                ]]) !== null;
             } catch (Throwable $e) {}
         }
 
@@ -43,6 +46,8 @@ class SetupController
             'has_auth_db'  => $hasAuth,
             'user_count'   => $userCount,
             'admin_exists' => $adminExists,
+            'version'      => '2.1.0-permissions',
+            'acl_model'    => 'user -> role -> resource(db.collection) -> action + field_level + row_level',
         ]);
     }
 
@@ -127,16 +132,19 @@ class SetupController
             $userCol->setSchema($nativeSchema);
             $userCol->saveConfiguration();
 
-            // Buat superadmin
+            // Buat superadmin – SINGLE role relation
             if (!$userCol->findOne(['username' => $adminUser])) {
                 $userCol->insert([
-                    'username'      => $adminUser,
-                    'email'         => $adminEmail,
-                    'name'          => 'Administrator',
-                    'password_hash' => password_hash($adminPass, PASSWORD_ARGON2ID),
-                    'roles'         => ['superadmin'],
-                    'active'        => true,
-                    'created_at'    => date('c'),
+                    '_id'                  => 'usr_superadmin',
+                    'username'             => $adminUser,
+                    'email'                => $adminEmail,
+                    'name'                 => 'Super Administrator',
+                    'password_hash'        => password_hash($adminPass, PASSWORD_ARGON2ID),
+                    'role'                 => 'superadmin', // SINGLE relation
+                    'roles'                => ['superadmin'], // BC
+                    'active'               => true,
+                    'must_change_password' => true,
+                    'created_at'           => date('c'),
                 ]);
             }
 
@@ -170,9 +178,12 @@ class SetupController
     private function getPermissionSSOT(): array
     {
         return [
-            'name'        => ['type' => 'string', 'required' => true, 'unique' => true, 'label' => 'Name', 'filterable' => true],
+            'name'        => ['type' => 'string', 'required' => true, 'unique' => true, 'label' => 'Name', 'filterable' => true, 'regex'=>'/^[a-z0-9_.\:\*\-]+$/'],
             'label'       => ['type' => 'string', 'label' => 'Label'],
+            'group'       => ['type' => 'string', 'label' => 'Group', 'default'=>'custom','filterable'=>true],
             'description' => ['type' => 'text', 'label' => 'Description'],
+            'is_system'   => ['type' => 'bool', 'label' => 'System', 'default'=>false,'readonly'=>true],
+            'created_at'  => ['type' => 'datetime', 'label' => 'Created', 'readonly'=>true],
         ];
     }
 
@@ -200,7 +211,9 @@ class SetupController
     }
 
     /**
-     * SSOT schema untuk users — roles adalah relasi many-to-many ke koleksi roles
+     * SSOT schema untuk users — role SINGLE relation ke auth.roles
+     * user.role → auth.roles._id (SINGLE, required)
+     * roles[] tetap disimpan untuk BC JWT
      */
     private function getUserSSOT(): array
     {
@@ -209,31 +222,59 @@ class SetupController
             'email'         => ['type' => 'email', 'required' => true, 'unique' => true, 'label' => 'Email', 'filterable' => true, 'searchable' => true],
             'name'          => ['type' => 'string', 'label' => 'Full Name'],
             'password_hash' => ['type' => 'password', 'required' => true, 'label' => 'Password', 'hidden' => true],
-            'roles'         => [
+            // SINGLE role relation – utama
+            'role'          => [
                 'type'     => 'relation',
-                'label'    => 'Roles',
-                'multiple' => true,
+                'label'    => 'Role',
+                'required' => true,
+                'multiple' => false,
+                'default'  => 'user',
                 'relation' => [
                     'db'         => 'auth',
                     'collection' => 'roles',
-                    'field'      => 'name',
-                    'display'    => 'label',
+                    'field'      => '_id',
+                    'display'    => 'name',
+                    'type'       => 'one',
                 ],
             ],
-            'active'     => ['type' => 'bool', 'default' => true, 'label' => 'Active'],
-            'created_at' => ['type' => 'datetime', 'label' => 'Created At', 'readonly' => true],
+            // BC: roles array (hidden)
+            'roles'         => [
+                'type'     => 'array',
+                'label'    => 'Roles (legacy)',
+                'hidden'   => true,
+            ],
+            'active'               => ['type' => 'bool', 'default' => true, 'label' => 'Active'],
+            'must_change_password' => ['type' => 'bool', 'default' => false, 'label' => 'Must Change Password'],
+            'created_at'           => ['type' => 'datetime', 'label' => 'Created At', 'readonly' => true],
         ];
     }
 
     private function getDefaultPermissions(): array
     {
         return [
-            ['name' => 'read', 'label' => 'Read'],
-            ['name' => 'create', 'label' => 'Create'],
-            ['name' => 'update', 'label' => 'Update'],
-            ['name' => 'delete', 'label' => 'Delete'],
-            ['name' => 'manage_schema', 'label' => 'Manage Schema'],
-            ['name' => 'manage_acl', 'label' => 'Manage ACL'],
+            // CRUD
+            ['_id'=>'read','name' => 'read', 'label' => 'Read', 'group'=>'crud','description'=>'Find, findOne, count','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'find','name' => 'find', 'label' => 'Find', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'count','name' => 'count', 'label' => 'Count', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'create','name' => 'create', 'label' => 'Create', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'insert','name' => 'insert', 'label' => 'Insert', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'update','name' => 'update', 'label' => 'Update', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'delete','name' => 'delete', 'label' => 'Delete', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'remove','name' => 'remove', 'label' => 'Remove', 'group'=>'crud','is_system'=>true,'created_at'=>date('c')],
+            // admin
+            ['_id'=>'manage_schema','name' => 'manage_schema', 'label' => 'Manage Schema','group'=>'admin','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'manage_acl','name' => 'manage_acl', 'label' => 'Manage ACL','group'=>'admin','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'manage_index','name'=>'manage_index','label'=>'Manage Indexes','group'=>'admin','is_system'=>true,'created_at'=>date('c')],
+            ['_id'=>'manage_hooks','name'=>'manage_hooks','label'=>'Manage Hooks','group'=>'admin','is_system'=>true,'created_at'=>date('c')],
+            // data ops
+            ['_id'=>'export','name' => 'export', 'label' => 'Export Data','group'=>'data','description'=>'Export JSON/CSV','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'import','name' => 'import', 'label' => 'Import Data','group'=>'data','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'publish','name'=>'publish','label'=>'Publish','group'=>'workflow','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'approve','name'=>'approve','label'=>'Approve','group'=>'workflow','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'archive','name'=>'archive','label'=>'Archive','group'=>'workflow','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'restore','name'=>'restore','label'=>'Restore','group'=>'data','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'force_delete','name'=>'force_delete','label'=>'Force Delete','group'=>'admin','is_system'=>false,'created_at'=>date('c')],
+            ['_id'=>'*','name'=>'*','label'=>'Full Access (*)','group'=>'system','is_system'=>true,'created_at'=>date('c')],
         ];
     }
 

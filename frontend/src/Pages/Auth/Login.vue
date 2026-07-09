@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div class="text-center mt-6 text-[11px] text-slate-700">Bangron Studio v2.0.0</div>
+    <div class="text-center mt-6 text-[11px] text-slate-700">Bangron Studio v2.1 – Session + JWT hybrid</div>
   </div>
 </template>
 
@@ -73,15 +73,34 @@ async function login() {
   if (!form.username || !form.password) { error.value = 'Username dan password wajib diisi'; return }
   loading.value = true
   try {
-    const r = await axios.post('/auth/login', { username: form.username, password: form.password })
+    // Hybrid: coba session login dulu (/login), fallback ke JWT (/auth/login) untuk API
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const r = await axios.post('/login', { 
+      username: form.username, 
+      password: form.password,
+      _token: csrf
+    }, { withCredentials: true })
     if (r.data.ok) {
-      localStorage.setItem('token', r.data.token)
-      localStorage.setItem('user', JSON.stringify(r.data.user))
-      window.location.href = '/'
+      // session cookie sudah diset HttpOnly – redirect
+      const dest = r.data.redirect || '/'
+      window.location.href = dest
+      return
     } else {
       error.value = r.data.message || 'Login gagal'
     }
   } catch (e) {
+    // fallback JWT untuk external / API mode
+    try {
+      const r2 = await axios.post('/auth/login', { username: form.username, password: form.password })
+      if (r2.data.ok || r2.data.access_token) {
+        localStorage.setItem('token', r2.data.token || r2.data.access_token)
+        localStorage.setItem('user', JSON.stringify(r2.data.user || {}))
+        // set default Authorization untuk API calls berikutnya
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + (r2.data.token || r2.data.access_token)
+        window.location.href = '/'
+        return
+      }
+    } catch (e2) {}
     error.value = e.response?.data?.message || e.message || 'Koneksi gagal'
   } finally {
     loading.value = false

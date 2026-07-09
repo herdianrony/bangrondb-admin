@@ -53,11 +53,30 @@ class AuthController
             return;
         }
 
+        // ensure schema role relation
+        if (method_exists($users, 'setSchema')) {
+            try {
+                $users->setSchema([
+                    'username'=>['required'=>true,'type'=>'string','unique'=>true],
+                    'email'=>['type'=>'email','unique'=>true],
+                    'name'=>['type'=>'string'],
+                    'password_hash'=>['type'=>'string','hidden'=>true],
+                    'role'=>['required'=>true,'type'=>'relation','relation'=>['db'=>'auth','collection'=>'roles','field'=>'_id','display'=>'name','type'=>'one'],'default'=>'user'],
+                    'roles'=>['type'=>'array','hidden'=>true],
+                    'active'=>['type'=>'bool','default'=>true],
+                    'created_at'=>['type'=>'datetime','readonly'=>true],
+                ]);
+                $users->saveConfiguration();
+            } catch (\Throwable $e) {}
+        }
+
         $hash = password_hash($password, PASSWORD_ARGON2ID);
         $id   = $users->insert([
             'username'      => $username,
             'email'         => $email,
+            'name'          => $body['name'] ?? $username,
             'password_hash' => $hash,
+            'role'          => $role,
             'roles'         => [$role],
             'created_at'    => date('c'),
             'active'        => true,
@@ -68,7 +87,7 @@ class AuthController
             'auth.register',
             $authDb,
             $authCol,
-            ['id' => $id, 'username' => $username, 'roles' => [$role]],
+            ['id' => $id, 'username' => $username, 'role'=>$role, 'roles' => [$role]],
             [],
             'ok'
         );
@@ -122,13 +141,18 @@ class AuthController
             return;
         }
 
-        $roles   = $user['roles'] ?? ['user'];
+        $roleSingle = $user['role'] ?? null;
+        $roles   = $user['roles'] ?? ($roleSingle ? [$roleSingle] : ['user']);
+        if ($roleSingle && !in_array($roleSingle, $roles, true)) {
+            $roles = array_unique(array_merge([$roleSingle], $roles));
+        }
+        $primaryRole = $roleSingle ?? ($roles[0] ?? 'user');
         $payload = [
             'sub'      => $user['_id'] ?? null,
             'username' => $user['username'] ?? null,
             'email'    => $user['email'] ?? null,
             'roles'    => $roles,
-            'role'     => $roles[0] ?? 'user',
+            'role'     => $primaryRole,
             'name'     => $user['name'] ?? $user['username'] ?? null,
         ];
 
@@ -165,11 +189,51 @@ class AuthController
 
         unset($user['password_hash']);
 
+        // --- API Key auto-generate per user on login ---
+        $apiKeyOut = null;
+        try {
+            // ensure api_keys collection
+            if (!$client->collectionExists('auth','api_keys')) {
+                $client->createCollection('auth','api_keys');
+            }
+            $akCol = $client->selectCollection('auth','api_keys');
+            // cek apakah user sudah punya active key
+            $existingKey = $akCol->findOne(['user_id'=>$user['_id']??null,'active'=>true]);
+            if (!$existingKey) {
+                // generate new personal API key
+                $plainKey = 'brk_'.bin2hex(random_bytes(24));
+                $keyDoc = [
+                    '_id' => 'ak_'.bin2hex(random_bytes(8)),
+                    'name' => 'Auto – login '.date('Y-m-d H:i'),
+                    'key_hash' => hash('sha256', $plainKey),
+                    'key_prefix' => substr($plainKey,0,12).'…',
+                    'user_id' => $user['_id'] ?? null,
+                    'username' => $user['username'] ?? null,
+                    'role' => $primaryRole,
+                    // scopes = permissions dari role
+                    'scopes' => [], // akan dicek via role→resource→action
+                    'active' => true,
+                    'created_at' => date('c'),
+                    'created_via' => 'auto_login',
+                    'login_jti' => $pair['jti'] ?? null,
+                ];
+                $akCol->save($keyDoc);
+                $apiKeyOut = $plainKey; // tampilkan sekali saja
+            }
+        } catch (\Throwable $e) {
+            // silent – API key optional
+            LoggerFactory::auth()->warning('API key auto-generate failed', ['error'=>$e->getMessage()]);
+        }
+
         \Flight::json(array_merge([
             'ok'    => true,
             'user'  => $user,
             'roles' => $roles,
+            'role'  => $primaryRole,
             'token' => $pair['access_token'],
+            // API key untuk external app – generated per user saat login
+            'api_key' => $apiKeyOut,
+            'api_key_note' => $apiKeyOut ? 'Simpan API key ini – tidak akan ditampilkan lagi. Gunakan header X-API-Key' : 'Gunakan API key yang sudah ada di /admin/api-keys atau /tokens',
         ], $pair));
     }
 

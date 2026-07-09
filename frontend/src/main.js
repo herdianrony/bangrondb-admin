@@ -2,6 +2,7 @@ import './app.css'
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { registerUi } from '@/Components/UI'
 
 createInertiaApp({
   resolve: name => {
@@ -14,9 +15,11 @@ createInertiaApp({
   setup({ el, App, props, plugin }) {
     // Remove skeleton loading class so CSS flex/height no longer constrains #app
     el.classList.remove('is-loading')
-    createApp({ render: () => h(App, props) })
+    const vueApp = createApp({ render: () => h(App, props) })
       .use(plugin)
-      .mount(el)
+    // Register Bangron Studio UI Kit globally – Design System v3 Clarity
+    registerUi(vueApp)
+    vueApp.mount(el)
   },
   progress: { color: '#6366f1' },
 })
