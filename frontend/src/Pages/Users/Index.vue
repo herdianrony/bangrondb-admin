@@ -29,8 +29,7 @@
           <div class="text-[12px] font-[600] text-slate-300">Auth Users – auth.users</div>
           <div class="text-[10px] text-slate-500">{{ users.length }} records</div>
         </div>
-<<<<<<< HEAD
-        
+
         <UiTable
           :columns="[
             {key:'username', label:'User', mono:false},
@@ -88,48 +87,6 @@
           </template>
         </UiTable>
       </UiCard>
-=======
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="u in users" :key="u._id">
-                <td class="py-2 font-medium">{{ u.username }}<div class="text-[11px] text-slate-500">{{ u._id }}</div></td>
-                <td>{{ u.email }}</td>
-                <td><span class="badge mr-1">{{ u.role || (u.roles && u.roles[0]) || 'user' }}</span></td>
-                <td>
-                  <span v-if="u.active!==false" class="text-emerald-400 flex items-center gap-1">
-                    <CheckCircle :size="14" />
-                    Active
-                  </span>
-                  <span v-else class="text-red-400 flex items-center gap-1">
-                    <XCircle :size="14" />
-                    Disabled
-                  </span>
-                </td>
-                <td class="text-right space-x-1">
-                  <button class="btn-ghost-sm" @click="editUser(u)">
-                    <Pencil :size="13" />
-                  </button>
-                  <button class="btn-ghost-sm" @click="resetPass(u)">
-                    <Key :size="13" />
-                  </button>
-                  <button class="btn-ghost-sm" @click="toggleActive(u)">
-                    <Ban v-if="u.active!==false" :size="13" />
-                    <CheckCircle v-else :size="13" />
-                  </button>
-                  <button class="btn-ghost-sm text-amber-300" @click="revokeTokens(u)">
-                    <AlertTriangle :size="13" />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
       <!-- Form -->
       <UiCard class="h-fit">
@@ -137,7 +94,6 @@
           <component :is="form._id ? Pencil : UserPlus" :size="15" :class="form._id ? 'text-indigo-400' : 'text-emerald-400'"/>
           {{ form._id ? 'Edit User' : 'New User' }}
         </h3>
-<<<<<<< HEAD
 
         <div class="space-y-3">
           <UiInput v-model="form.username" label="Username *" placeholder="johndoe" :required="true" />
@@ -184,18 +140,6 @@
             • Password → Argon2id<br>
             • Reset password → revoke semua refresh tokens
           </div>
-=======
-        <input v-model="form.username" placeholder="Username" class="input"/>
-        <input v-model="form.email" placeholder="Email" class="input"/>
-        <input v-model="form.name" placeholder="Full Name" class="input"/>
-        <input v-model="form.password" type="password" placeholder="Leave empty to auto-generate" class="input"/>
-        <div>
-          <div class="text-xs text-slate-400 mb-1">Role <span class="text-[10px] text-amber-400">(single relation)</span></div>
-          <select v-model="form.role" class="input">
-            <option v-for="r in allRoles" :key="r.name" :value="r.name">{{ r.label || r.name }}</option>
-          </select>
-          <div class="text-[10px] text-slate-500 mt-1">auth.users.role → auth.roles._id</div>
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
         </div>
       </UiCard>
     </div>
@@ -273,14 +217,10 @@ const result = ref('')
 const loading = ref(false)
 const saving = ref(false)
 
-<<<<<<< HEAD
-const form = reactive({ 
-  _id:'', username:'', email:'', name:'', password:'', 
-  role:'user', roles:['user'], active:true 
+const form = reactive({
+  _id:'', username:'', email:'', name:'', password:'',
+  role:'user', roles:['user'], active:true
 })
-=======
-const form = reactive({ _id:'', username:'', email:'', name:'', password:'', role:'user', roles:['user'], active:true })
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
 async function load(){
   loading.value = true
@@ -289,15 +229,17 @@ async function load(){
     users.value = r.data.data || []
     const rr = await axios.get('/admin/roles', {withCredentials:true})
     allRoles.value = rr.data.data || []
-  } catch(e){} 
+  } catch(e){
+    toast.error('Gagal memuat data: ' + (e.response?.data?.message || e.message))
+  }
   finally { loading.value=false }
 }
 
-function resetForm(){ 
+function resetForm(){
   Object.assign(form,{_id:'',username:'',email:'',name:'',password:'',role:'user',roles:['user'],active:true})
   result.value=''
 }
-<<<<<<< HEAD
+
 function editUser(u){
   const r = u.role || u.roles?.[0] || 'user'
   Object.assign(form, {
@@ -305,18 +247,12 @@ function editUser(u){
     password:'', role:r, roles:[r], active:u.active!==false
   })
   window.scrollTo({top:0, behavior:'smooth'})
-=======
-function resetForm(){ Object.assign(form,{_id:'',username:'',email:'',name:'',password:'',role:'user',roles:['user'],active:true}); result.value='' }
-function editUser(u){
-  const r = u.role || (u.roles && u.roles[0]) || 'user'
-  Object.assign(form, {_id:u._id, username:u.username, email:u.email||'', name:u.name||'', password:'', role:r, roles:[r], active:u.active!==false})
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 }
+
 async function save(){
   saving.value = true
   result.value = ''
   try{
-<<<<<<< HEAD
     const payload = { ...form, roles: [form.role] }
     let res
     if(form._id){
@@ -325,64 +261,62 @@ async function save(){
     }else{
       res = await axios.post('/admin/users', payload, {withCredentials:true})
       result.value = 'Created ✔\n' + JSON.stringify(res.data, null, 2)
-=======
-    const payload = {...form, roles:[form.role]}
-    if(form._id){
-      await axios.put(`/admin/users/${form._id}`, payload)
-      result.value = 'updated'
-    }else{
-      const r = await axios.post('/admin/users', payload)
-      result.value = JSON.stringify(r.data, null, 2)
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
     }
     resetForm(); await load()
   }catch(e){
     result.value = 'Error: ' + (e.response?.data?.message || e.message)
   }finally{ saving.value=false }
 }
+
 async function resetPass(u){
-<<<<<<< HEAD
   try{
     const r = await axios.post(`/admin/users/${u._id}/reset-password`, {}, {withCredentials:true})
-    alert('Password baru untuk '+u.username+':\n\n' + r.data.new_password + '\n\nUser wajib ganti saat login berikutnya.')
+    toast.info('Password baru untuk ' + u.username + ': ' + r.data.new_password)
     load()
-  }catch(e){ alert(e.response?.data?.message || e.message) }
-=======
-  const r = await axios.post(`/admin/users/${u._id}/reset-password`, {})
-  toast.info('Password baru: ' + r.data.new_password)
-  load()
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
+  }catch(e){
+    toast.error(e.response?.data?.message || e.message)
+  }
 }
+
 async function toggleActive(u){
-  await axios.post(`/admin/users/${u._id}/toggle-active`, {}, {withCredentials:true}); load()
+  await axios.post(`/admin/users/${u._id}/toggle-active`, {}, {withCredentials:true})
+  load()
 }
+
 async function revokeTokens(u){
-<<<<<<< HEAD
-  const r = await axios.post(`/admin/users/${u._id}/revoke-tokens`, {}, {withCredentials:true})
-  alert(`Refresh tokens ${u.username} dicabut: ${r.data.revoked_refresh}`)
-=======
-  await axios.post(`/admin/users/${u._id}/revoke-tokens`, {})
-  toast.info('Token untuk '+u.username+' telah dicabut')
->>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
+  try{
+    const r = await axios.post(`/admin/users/${u._id}/revoke-tokens`, {}, {withCredentials:true})
+    toast.info(`Refresh tokens ${u.username} dicabut: ${r.data.revoked_refresh}`)
+  }catch(e){
+    toast.error(e.response?.data?.message || e.message)
+  }
   loadTokens()
 }
+
 async function loadTokens(){
   try{
     const r = await axios.get('/auth/tokens', {withCredentials:true})
     tokens.value = r.data.data || []
   }catch{ tokens.value=[] }
 }
+
 async function loadBlacklist(){
   try{
     const r = await axios.get('/auth/blacklist', {withCredentials:true})
     blacklist.value = r.data.data || []
   }catch{ blacklist.value=[] }
 }
+
 async function revokeJti(jti){
   if(!confirm('Revoke token '+jti.slice(0,12)+'… ?')) return
-  await axios.post('/auth/revoke', {jti, reason:'admin_ui'}, {withCredentials:true})
-  loadTokens(); loadBlacklist()
+  try{
+    await axios.post('/auth/revoke', {jti, reason:'admin_ui'}, {withCredentials:true})
+    loadTokens(); loadBlacklist()
+  }catch(e){
+    toast.error(e.response?.data?.message || e.message)
+  }
 }
+
 function roleColor(r){
   return { superadmin:'red', admin:'amber', editor:'indigo', user:'slate', viewer:'slate', guest:'slate'}[r] || 'slate'
 }
