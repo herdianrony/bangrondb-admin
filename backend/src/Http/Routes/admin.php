@@ -18,7 +18,10 @@ declare(strict_types=1);
 
 use App\Controllers\AdminController;
 use App\Controllers\PermissionController;
+<<<<<<< HEAD
 use App\Controllers\ApiKeyController;
+=======
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
 // ---------- Users Management ----------
 Flight::route('GET    /admin/users',                            [AdminController::class, 'users']);
@@ -43,10 +46,13 @@ Flight::route('POST   /admin/permissions',                      [PermissionContr
 Flight::route('PUT    /admin/permissions/@name',                [PermissionController::class, 'update']);
 Flight::route('DELETE /admin/permissions/@name',                [PermissionController::class, 'destroy']);
 
+<<<<<<< HEAD
 // ---------- API Keys (for external apps) ----------
 Flight::route('GET    /admin/api-keys',                       [ApiKeyController::class, 'index']);
 Flight::route('POST   /admin/api-keys',                       [ApiKeyController::class, 'store']);
 Flight::route('DELETE /admin/api-keys/@id',                   [ApiKeyController::class, 'destroy']);
 
+=======
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 // ---------- Token Admin ----------
 Flight::route('POST   /admin/users/@id/revoke-tokens',          [AdminController::class, 'revokeTokens']);

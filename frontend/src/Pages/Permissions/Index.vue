@@ -37,6 +37,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+<<<<<<< HEAD
+=======
+import { useToast } from '@/composables/useToast'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
+const toast = useToast()
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 const list=ref([]), grouped=ref({}), msg=ref('')
 const form=reactive({name:'',label:'',group:'custom',description:''})
 async function load(){
@@ -50,8 +56,13 @@ async function save(){
   }catch(e){ msg.value=e.response?.data?.message||e.message }
 }
 async function remove(p){
+<<<<<<< HEAD
   if(!confirm('Delete '+p.name+'?')) return
   try{ await axios.delete('/admin/permissions/'+encodeURIComponent(p.name)); load() }catch(e){ alert(e.response?.data?.message||e.message) }
+=======
+  if(!(await confirmDialog({ title:'Delete Permission', message:'Delete '+p.name+'?', confirmText:'Delete', danger:true }))) return
+  try{ await axios.delete('/admin/permissions/'+encodeURIComponent(p.name)); load() }catch(e){ toast.error(e.response?.data?.message||e.message) }
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 }
 onMounted(load)
 </script>

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -34,17 +35,32 @@ Flight::route('GET  /auth/me', [WebAuthController::class, 'me']);
 Flight::route('GET /auth/register', [InertiaController::class, 'authRegister']);
 
 // Admin Studio pages
+<<<<<<< HEAD
 Flight::route('GET /users', function(){ \Flight::inertia()->render('Users/Index', []); });
 Flight::route('GET /roles', function(){ \Flight::inertia()->render('Roles/Index', []); });
 Flight::route('GET /permissions', function(){ \Flight::inertia()->render('Permissions/Index', []); });
 Flight::route('GET /tokens', function(){ \Flight::inertia()->render('Tokens/Index', []); });
 Flight::route('GET /acl', function(){ \Flight::inertia()->render('Acl/Index', []); });
+=======
+Flight::route('GET /users', function () {
+    \Flight::inertia()->render('Users/Index', []);
+});
+Flight::route('GET /roles', function () {
+    \Flight::inertia()->render('Roles/Index', []);
+});
+Flight::route('GET /permissions', function () {
+    \Flight::inertia()->render('Permissions/Index', []);
+});
+Flight::route('GET /tokens', function () {
+    \Flight::inertia()->render('Tokens/Index', []);
+});
+Flight::route('GET /acl', function () {
+    \Flight::inertia()->render('Acl/Index', []);
+});
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
 // Database detail — shows collections inside a database
 Flight::route('GET /databases/@db', [InertiaController::class, 'database']);
 
 // Collection detail — shows documents inside a collection
 Flight::route('GET /databases/@db/collections/@col', [InertiaController::class, 'collection']);
-
-// Catch-all fallback — 404 via Inertia
-Flight::route('GET /@path', [InertiaController::class, 'fallback']);

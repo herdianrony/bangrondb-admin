@@ -14,11 +14,6 @@ use Throwable;
 
 class AuthController
 {
-    private static function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     /**
      * POST /api/auth/register
      */
@@ -83,7 +78,7 @@ class AuthController
         ]);
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.register',
             $authDb,
             $authCol,
@@ -123,7 +118,7 @@ class AuthController
 
         if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
             Audit::log(
-                self::dbPath(),
+                \Flight::bangron()->getPath(),
                 'auth.login_failed',
                 $authDb,
                 $authCol,
@@ -176,7 +171,7 @@ class AuthController
         );
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.login',
             $authDb,
             $authCol,
@@ -304,7 +299,7 @@ class AuthController
         );
 
         Audit::log(
-            self::dbPath(),
+            \Flight::bangron()->getPath(),
             'auth.refresh',
             'auth',
             'refresh_tokens',

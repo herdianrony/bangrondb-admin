@@ -9,11 +9,6 @@ use Throwable;
 
 class AclController
 {
-    private function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     /**
      * GET /api/@db/@collection/acl — Load ACL configuration for a collection.
      */
@@ -40,7 +35,7 @@ class AclController
         Acl::save($col, $aclIn);
 
         Audit::log(
-            $this->dbPath(),
+            \Flight::bangron()->getPath(),
             'acl.save',
             $db,
             $collection,

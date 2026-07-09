@@ -16,11 +16,6 @@ class AdminController
         return \Flight::bangron()->getClient();
     }
 
-    private function dbPath(): string
-    {
-        return defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
-    }
-
     private function ensureAuthDb(Client $client): void
     {
         if (!$client->dbExists('auth')) {
@@ -130,7 +125,7 @@ class AdminController
         $id = $col->insert($doc);
 
         Audit::log(
-            $this->dbPath(),
+            \Flight::bangron()->getPath(),
             'admin.user.create',
             'auth',
             'users',

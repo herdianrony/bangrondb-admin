@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="min-h-screen bg-[#0e1116] text-slate-200 antialiased">
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 h-screen w-[260px] bg-[#141824]/95 backdrop-blur-xl border-r border-white/[0.06] z-40 hidden lg:flex flex-col">
@@ -158,6 +159,19 @@
         </div>
         <a v-else href="/auth/login" class="btn-sm">Sign in</a>
       </header>
+=======
+  <div class="min-h-screen bg-[#0f1117]">
+    <!-- Mobile Sidebar Overlay -->
+    <div v-if="mobileOpen" class="sidebar-overlay" @click="mobileOpen = false"></div>
+
+    <!-- ═══ Sidebar ═══ -->
+    <Sidebar :mobile-open="mobileOpen" @close="mobileOpen = false" />
+
+    <!-- ═══ Main Area ═══ -->
+    <div class="lg:ml-[250px] min-h-screen flex flex-col">
+      <!-- Mobile Top Bar -->
+      <MobileHeader @open="mobileOpen = true" />
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
       <!-- Page -->
       <main class="flex-1 px-4 lg:px-8 py-6 max-w-7xl w-full mx-auto">
@@ -171,6 +185,7 @@
       </footer>
     </div>
 
+<<<<<<< HEAD
     <!-- Mobile drawer -->
     <div v-if="mobileOpen" class="fixed inset-0 z-50 lg:hidden">
       <div class="absolute inset-0 bg-black/60" @click="mobileOpen=false"></div>
@@ -190,6 +205,16 @@
         </div>
       </div>
     </div>
+=======
+    <!-- Mobile Bottom Nav -->
+    <BottomNav />
+
+    <!-- Database action modals (create / rename / drop) -->
+    <DatabaseModals />
+
+    <!-- Global confirm / prompt dialogs -->
+    <GlobalDialogs />
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160
 
     <!-- Command palette ⌘K -->
     <div v-if="openCommand" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[20vh] p-4"
@@ -224,6 +249,7 @@
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import {
@@ -400,3 +426,15 @@ const breadcrumb = computed(()=>{
 @keyframes scale-in { from{opacity:0; transform:scale(.97)} to{opacity:1; transform:scale(1)} }
 .animate-scale-in { animation:scale-in .2s ease-out; }
 </style>
+=======
+import { ref } from 'vue'
+import Sidebar from '@/Components/Sidebar.vue'
+import MobileHeader from '@/Components/MobileHeader.vue'
+import BottomNav from '@/Components/BottomNav.vue'
+import DatabaseModals from '@/Components/DatabaseModals.vue'
+import GlobalDialogs from '@/Components/GlobalDialogs.vue'
+import ToastContainer from '@/Components/ToastContainer.vue'
+
+const mobileOpen = ref(false)
+</script>
+>>>>>>> 2649ce77a485fe976186d38e231134378ddc6160

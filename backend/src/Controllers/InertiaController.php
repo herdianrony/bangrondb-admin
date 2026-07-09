@@ -11,7 +11,7 @@ class InertiaController
      */
     public function index(): void
     {
-        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        $dbPath = \Flight::bangron()->getPath();
 
         if ($this->needsSetup($dbPath)) {
             \Flight::inertia()->render('Setup/Index', [
@@ -63,7 +63,7 @@ class InertiaController
      */
     public function database(string $db): void
     {
-        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        $dbPath = \Flight::bangron()->getPath();
 
         if ($this->needsSetup($dbPath)) {
             header('Location: /');
@@ -82,7 +82,7 @@ class InertiaController
      */
     public function collection(string $db, string $col): void
     {
-        $dbPath = defined('BANGRON_DB_PATH') ? BANGRON_DB_PATH : dirname(__DIR__, 2) . '/storage/data';
+        $dbPath = \Flight::bangron()->getPath();
 
         if ($this->needsSetup($dbPath)) {
             header('Location: /');

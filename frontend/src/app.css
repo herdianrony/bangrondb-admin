@@ -142,9 +142,6 @@ body {
 }
 
 /* ── Page Header ── */
-.page-header {
-  @apply flex flex-wrap items-center justify-between gap-4 mb-8;
-}
 .page-title {
   @apply text-2xl font-bold tracking-tight text-white;
 }
@@ -170,31 +167,6 @@ body {
 }
 .nav-item.active .nav-item-icon {
   @apply text-indigo-400;
-}
-
-/* ── Mode Switcher ── */
-.mode-switcher {
-  @apply flex items-center gap-1 p-1 rounded-xl bg-[#0f1117] border;
-  border-color: var(--border-subtle);
-}
-.mode-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-         text-slate-500 hover:text-slate-300 transition-all duration-150 cursor-pointer;
-}
-.mode-btn.active {
-  @apply bg-indigo-500/15 text-indigo-300;
-  box-shadow: 0 1px 3px rgba(99,102,241,0.15);
-}
-
-/* ── Mode Badge (sidebar footer) ── */
-.mode-badge {
-  @apply text-[10px] font-medium px-2 py-0.5 rounded-md;
-}
-.mode-badge-editor {
-  @apply bg-indigo-500/10 text-indigo-400 border border-indigo-500/20;
-}
-.mode-badge-dev {
-  @apply bg-violet-500/10 text-violet-400 border border-violet-500/20;
 }
 
 /* ── Mobile Bottom Nav ── */
@@ -232,14 +204,6 @@ body {
 .section-label {
   @apply text-xs text-slate-500 font-medium mb-1.5;
 }
-
-/* ── Status ── */
-.status-dot {
-  @apply w-2 h-2 rounded-full inline-block;
-}
-.status-dot.ok { @apply bg-emerald-400 shadow-sm shadow-emerald-400/50; }
-.status-dot.error { @apply bg-red-400 shadow-sm shadow-red-400/50; }
-.status-dot.warn { @apply bg-amber-400 shadow-sm shadow-amber-400/50; }
 
 /* ── Empty State ── */
 .empty-state {
@@ -281,6 +245,16 @@ body {
 .toast-error   { @apply bg-red-950/95 border border-red-800/40 text-red-300; }
 .toast-info    { @apply bg-blue-950/95 border border-blue-800/40 text-blue-300; }
 .toast-warning { @apply bg-amber-950/95 border border-amber-800/40 text-amber-300; }
+
+/* ── Modal (AppModal) ── */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
 
 /* ══════════════════════════════════════════════════════════════════
    Phase 3 — Spreadsheet Data Table
@@ -592,27 +566,6 @@ body {
   accent-color: #6366f1;
 }
 
-/* ── Onboarding ── */
-.onboarding-step {
-  @apply flex items-center gap-3 text-sm;
-}
-.onboarding-step .step-number {
-  @apply w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
-         border-2 transition-all duration-200;
-}
-.onboarding-step.active .step-number {
-  @apply bg-indigo-500 border-indigo-500 text-white;
-}
-.onboarding-step.done .step-number {
-  @apply bg-emerald-500/20 border-emerald-500 text-emerald-400;
-}
-.onboarding-step.pending .step-number {
-  @apply bg-transparent border-slate-600 text-slate-600;
-}
-.onboarding-connector {
-  @apply w-0.5 h-6 bg-slate-700 mx-auto rounded-full;
-}
-
 /* ── Select ── */
 .select {
   @apply w-full bg-[#0f1117] border rounded-xl px-3.5 py-2.5
@@ -650,31 +603,4 @@ body {
 .setup-btn-row .btn,
 .setup-btn-row .btn-ghost {
   @apply flex-1;
-}
-
-/* Env check items */
-.env-item {
-  @apply flex items-center gap-3 px-3.5 py-3 rounded-xl text-[13px];
-  background: #09090b;
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: all 0.2s;
-}
-.env-icon {
-  @apply w-5 h-5 rounded-md grid place-items-center flex-shrink-0;
-}
-
-/* Seed cards */
-.seed-card {
-  @apply p-3.5 rounded-xl border text-center cursor-pointer transition-all duration-200;
-  background: #09090b;
-  border-color: rgba(255,255,255,0.06);
-}
-.seed-card:hover {
-  border-color: rgba(99,102,241,0.3);
-  background: rgba(99,102,241,0.04);
-}
-.seed-card.selected {
-  border-color: rgba(99,102,241,0.5);
-  background: rgba(99,102,241,0.08);
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
 }

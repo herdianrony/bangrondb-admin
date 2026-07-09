@@ -247,6 +247,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
+import { useToast } from '@/composables/useToast'
 import {
   FolderOpen,
   FolderPlus,
@@ -270,6 +271,7 @@ import {
 } from 'lucide-vue-next'
 
 const api = axios.create({ baseURL: '' })
+const toast = useToast()
 
 // ── State ──
 const dbs = ref([])
@@ -495,7 +497,7 @@ async function confirmDelete(name) {
     deleteTarget.value = null
     await load()
   } catch (e) {
-    alert('Gagal menghapus collection: ' + (e.response?.data?.message || e.message))
+    toast.error('Gagal menghapus collection: ' + (e.response?.data?.message || e.message))
   }
 }
 </script>

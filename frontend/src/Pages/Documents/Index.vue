@@ -280,6 +280,7 @@ import axios from 'axios'
 import DataTable from '@/Components/DataTable.vue'
 import DocumentFormModal from '@/Components/DocumentFormModal.vue'
 import { useToast } from '@/composables/useToast'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
 import {
   Database, FolderOpen, Search, Plus, ArrowLeft, RefreshCw, Filter,
   Columns3, Download, FileJson, FileSpreadsheet, Hash, Link,
@@ -587,7 +588,7 @@ async function doDelete() {
 }
 
 async function bulkDelete(ids, clear) {
-  if (!confirm(`Hapus ${ids.length} dokumen?`)) return
+  if (!(await confirmDialog({ title: 'Hapus Dokumen', message: `Hapus ${ids.length} dokumen?`, confirmText: 'Hapus', danger: true }))) return
   try {
     await api.delete(`/databases/${db.value}/collections/${collection.value}/documents`, {
       params: { filter: JSON.stringify({ _id: { $in: ids } }) },

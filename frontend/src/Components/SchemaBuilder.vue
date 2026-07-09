@@ -306,6 +306,10 @@ import {
   Calendar, CalendarClock, Clock, Link,
   Eye, EyeOff, ClipboardCopy, Layers,
 } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
+
+const toast = useToast()
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) }
@@ -427,8 +431,8 @@ function addField() {
   let name = (newFieldName.value || '').trim()
     .replace(/\s+/g, '_')
     .replace(/[^a-zA-Z0-9_]/g, '')
-  if (!name) { alert('Nama field wajib diisi'); return }
-  if (props.modelValue[name]) { alert('Field sudah ada'); return }
+  if (!name) { toast.error('Nama field wajib diisi'); return }
+  if (props.modelValue[name]) { toast.error('Field sudah ada'); return }
   const next = { ...props.modelValue }
   next[name] = {
     type: newFieldType.value,
@@ -448,8 +452,8 @@ function addField() {
   newFieldName.value = ''
 }
 
-function removeField(key) {
-  if (!confirm('Hapus field "' + key + '"?')) return
+async function removeField(key) {
+  if (!(await confirmDialog({ title: 'Hapus Field', message: 'Hapus field "' + key + '"?', confirmText: 'Hapus', danger: true }))) return
   const n = { ...props.modelValue }
   delete n[key]
   emit('update:modelValue', n)
@@ -458,7 +462,7 @@ function removeField(key) {
 function renameField(oldKey, newKey) {
   newKey = (newKey || '').trim().replace(/\s+/g, '_')
   if (!newKey || newKey === oldKey) return
-  if (props.modelValue[newKey]) { alert('Nama sudah dipakai'); return }
+  if (props.modelValue[newKey]) { toast.error('Nama sudah dipakai'); return }
   const n = {}
   for (const [k, v] of Object.entries(props.modelValue)) {
     n[k === oldKey ? newKey : k] = v
@@ -511,13 +515,13 @@ function sortAlpha() {
 
 function copyJson() {
   navigator.clipboard.writeText(JSON.stringify(props.modelValue, null, 2))
-    .then(() => alert('SSOT JSON berhasil disalin!'))
+    .then(() => toast.success('SSOT JSON berhasil disalin!'))
     .catch(() => {})
 }
 
 function copyFieldJson(f) {
   navigator.clipboard.writeText(JSON.stringify(f.def, null, 2))
-    .then(() => alert('JSON field "' + f.key + '" berhasil disalin!'))
+    .then(() => toast.success('JSON field "' + f.key + '" berhasil disalin!'))
     .catch(() => {})
 }
 
